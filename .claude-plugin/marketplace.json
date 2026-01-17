@@ -1,0 +1,11 @@
+{
+  "name": "flugins",
+  "owner": {
+    "name": "Flopsstuff"
+  },
+  "metadata": {
+    "description": "Collection of Claude Code plugins by Flopsstuff",
+    "version": "0.0.1"
+  },
+  "plugins": []
+}
