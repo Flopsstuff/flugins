@@ -7,5 +7,16 @@
     "description": "Collection of Claude Code plugins by Flopsstuff",
     "version": "0.0.1"
   },
-  "plugins": []
+  "plugins": [
+    {
+      "name": "docs",
+      "source": "./plugins/docs",
+      "description": "Generate and keep documentation in sync with your codebase",
+      "author": {
+        "name": "Flop",
+        "email": "flop@hackerspace.by"
+      },
+      "keywords": ["documentation", "sync", "git", "automation"]
+    }
+  ]
 }
