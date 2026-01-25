@@ -2,29 +2,25 @@
 
 Collection of Claude Code plugins by Flopsstuff.
 
+**[Documentation](https://flopsstuff.github.io/flugins/)**
+
 ## Installation
 
 ### Add the marketplace
 
-```
-/plugin marketplace add Flopsstuff/flugins
-```
-
-### Install a plugin
-
-```
-/plugin install <plugin-name>@flugins
+```bash
+claude plugin marketplace add Flopsstuff/flugins
 ```
 
-### Update plugins
+### Install docs plugin
 
-```
-/plugin update
+```bash
+claude plugin install docs@flugins
 ```
 
 ## Available Plugins
 
-Coming soon.
+See the [Plugin Catalog](https://flopsstuff.github.io/flugins/plugin-catalog/) for detailed documentation of all available plugins.
 
 ## License
 
