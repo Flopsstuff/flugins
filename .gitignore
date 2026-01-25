@@ -17,3 +17,9 @@ Thumbs.db
 # Environment
 .env
 .env.local
+
+# MkDocs
+site/
+
+# ignore gitpmoji directory
+.gitpmoji
