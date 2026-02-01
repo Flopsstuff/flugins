@@ -1,6 +1,6 @@
 ---
-allowed-tools: Read, Write, Glob, LS
 description: Generate initial documentation for undocumented parts of project
+allowed-tools: Read, Write, Glob, LS
 disable-model-invocation: false
 ---
 
