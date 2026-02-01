@@ -2,6 +2,7 @@
   "name": "git",
   "version": "1.0.0",
   "description": "Git workflow commands for Claude Code",
+  "homepage": "https://github.com/Flopsstuff/flugins",
   "author": {
     "name": "Flop",
     "email": "flop@hackerspace.by"

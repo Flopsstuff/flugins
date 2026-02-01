@@ -1,7 +1,8 @@
 {
   "name": "docs",
-  "description": "Generate and keep documentation in sync with your codebase",
   "version": "1.0.0",
+  "description": "Generate and keep documentation in sync with your codebase",
+  "homepage": "https://github.com/Flopsstuff/flugins",
   "author": {
     "name": "Flop",
     "email": "flop@hackerspace.by"
