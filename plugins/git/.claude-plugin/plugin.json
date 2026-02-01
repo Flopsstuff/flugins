@@ -1,0 +1,10 @@
+{
+  "name": "git",
+  "version": "1.0.0",
+  "description": "Git workflow commands for Claude Code",
+  "author": {
+    "name": "Flop",
+    "email": "flop@hackerspace.by"
+  },
+  "keywords": ["git", "version-control", "workflow"]
+}

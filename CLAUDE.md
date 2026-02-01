@@ -227,8 +227,11 @@ This repository uses gitmoji (via `.gitpmoji/`). Common prefixes:
 - `docs` — Documentation generation and synchronization tools
   - Commands: `/docs:generate-docs`, `/docs:sync-docs`
   - Skills: `docs-loader` (auto-loads project docs before code tasks)
+- `git` — Smart git workflow commands with intelligent conflict resolution
+  - Commands: `/git:rebase`, `/git:squash`, `/git:upstream-merge`
+  - Features: Intelligent conflict resolution, automatic commit squashing, upstream merging
 
-Refer to `plugins/docs/` as a reference implementation for plugin structure.
+Refer to `plugins/docs/` and `plugins/git/` as reference implementations for plugin structure.
 
 ## Important Notes
 

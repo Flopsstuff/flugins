@@ -5,6 +5,7 @@ This catalog provides detailed documentation for all available plugins in the Fl
 ## Available Plugins
 
 - [Docs Plugin](docs-plugin.md) - Generate and keep documentation in sync with your codebase
+- [Git Plugin](git-plugin.md) - Smart git workflow commands with intelligent conflict resolution
 
 ## Installation Reference
 

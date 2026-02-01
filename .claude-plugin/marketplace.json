@@ -17,6 +17,16 @@
         "email": "flop@hackerspace.by"
       },
       "keywords": ["documentation", "sync", "git", "automation"]
+    },
+    {
+      "name": "git",
+      "source": "./plugins/git",
+      "description": "Smart git workflow commands with intelligent conflict resolution",
+      "author": {
+        "name": "Flop",
+        "email": "flop@hackerspace.by"
+      },
+      "keywords": ["git", "version-control", "merge", "workflow"]
     }
   ]
 }

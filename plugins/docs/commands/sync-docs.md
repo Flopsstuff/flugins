@@ -1,6 +1,6 @@
 ---
-allowed-tools: Bash(git log:*), Bash(git diff:*), Bash(git show:*), Bash(git rev-parse:*)
 description: Sync documentation with recent codebase changes
+allowed-tools: Bash(git log:*), Bash(git diff:*), Bash(git show:*), Bash(git rev-parse:*)
 disable-model-invocation: false
 ---
 
