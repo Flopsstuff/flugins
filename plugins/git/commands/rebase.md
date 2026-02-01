@@ -1,6 +1,6 @@
 ---
 description: Rebase current branch onto base branch and resolve conflicts automatically
-allowed-tools: Read, Bash(git *), AskQuestion
+allowed-tools: Read, Bash(git *), AskUserQuestion
 disable-model-invocation: false
 ---
 

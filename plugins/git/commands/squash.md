@@ -1,6 +1,6 @@
 ---
 description: Squash commits to base branch into one or N commits with intelligent naming
-allowed-tools: Read, Write, Bash(git *), AskQuestion
+allowed-tools: Read, Write, Bash(git *), AskUserQuestion
 disable-model-invocation: false
 ---
 

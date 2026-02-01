@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(git *), Read, AskQuestion
+allowed-tools: Bash(git *), Read, AskUserQuestion
 description: Smart merge with upstream branch with conflict resolution
 disable-model-invocation: false
 ---
