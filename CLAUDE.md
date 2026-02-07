@@ -159,6 +159,10 @@ Or add as local marketplace:
 6. Update `docs/plugin-catalog/index.md` with plugin entry
 7. Test locally before committing
 
+### Modifying an Existing Plugin
+
+**IMPORTANT**: When adding, removing, or changing commands/skills in a plugin, always bump the version in that plugin's `.claude-plugin/plugin.json` (semver: patch for fixes, minor for new commands, major for breaking changes).
+
 ### Plugin Development Best Practices
 
 **Command Instructions:**
