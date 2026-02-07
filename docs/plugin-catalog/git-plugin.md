@@ -29,6 +29,7 @@ claude plugin install git@flugins
 - [Rebase](#rebase) - Rebase current branch with intelligent conflict resolution
 - [Squash Commits](#squash-commits) - Consolidate commits into logical groups
 - [Upstream Merge](#upstream-merge) - Merge from upstream with automatic conflict resolution
+- [Upstream Rebase](#upstream-rebase) - Rebase onto upstream branch with automatic conflict resolution
 
 ---
 
@@ -347,6 +348,118 @@ git checkout feature/api-improvements
 
 ---
 
+## Upstream Rebase
+
+**Command:** `/git:upstream-rebase`
+
+Intelligently rebases your current branch onto an upstream branch with automatic conflict resolution. Produces a clean, linear history without merge commits.
+
+### Usage
+
+```bash
+/git:upstream-rebase
+```
+
+### What it does
+
+1. **Pre-flight checks:**
+   - Checks for uncommitted changes (offers stashing)
+   - Identifies current branch
+   - Detects configured upstream branch
+   - Allows manual upstream selection if needed
+
+2. **Fetch and analysis:**
+   - Fetches latest changes from all remotes
+   - Checks how far upstream is ahead
+   - Exits early if upstream has no new changes
+
+3. **Change understanding:**
+   - Analyzes your branch's commits and their intent
+   - Lists commits that will be rebased
+   - Analyzes upstream's changes and their purpose
+   - Identifies potential conflict areas
+   - Summarizes findings to you
+
+4. **Rebase execution:**
+   - Replays your commits one by one onto the upstream branch
+   - Detects conflicts at each commit step
+
+5. **Intelligent conflict resolution:**
+   - For each commit that conflicts:
+     - Identifies which commit is being applied (`REBASE_HEAD`)
+     - Lists all conflicted files
+     - Reads conflict markers
+     - Analyzes both versions in context
+     - Determines resolution strategy based on intent
+     - Resolves and stages files
+     - Continues rebase to next commit
+   - Repeats until all commits are replayed
+   - Provides summary of all resolution decisions
+
+6. **Completion:**
+   - Shows rebased commit history
+   - Displays change statistics
+   - Restores stashed changes if any
+
+### Example Workflow
+
+```bash
+# Working on feature branch tracking upstream
+git checkout feature/api-improvements
+
+# Rebase onto latest upstream
+/git:upstream-rebase
+
+# Claude analyzes:
+# "Your branch has 4 commits adding new API endpoints.
+#  Upstream added rate limiting middleware and updated error handling.
+#  Rebasing your commits onto upstream..."
+
+# If conflicts occur:
+# "Conflict in commit 'Add /users endpoint' at api/server.js
+#  - Your commit: Added new /users endpoint
+#  - Upstream: Refactored middleware registration
+#
+#  Resolution: Adapting your endpoint to use the refactored
+#  middleware pattern from upstream. Continuing rebase..."
+
+# Rebase complete:
+# "Rebase successful! Replayed 4 commits onto upstream.
+#  Resolved 2 conflicts. Clean linear history preserved."
+```
+
+### Upstream Merge vs Upstream Rebase
+
+| Aspect | `/git:upstream-merge` | `/git:upstream-rebase` |
+|--------|----------------------|----------------------|
+| History | Creates a merge commit | Linear history, no merge commit |
+| Commit hashes | Preserved | New hashes for rebased commits |
+| Conflict resolution | Once for all changes | Per-commit as each is replayed |
+| Best for | Shared branches, preserving history | Feature branches, clean PRs |
+| Safety | Non-destructive | Rewrites history (don't use on shared branches) |
+
+### Best Practices
+
+- Use for feature branches before creating pull requests
+- Don't use on branches that others are working on (rewrites history)
+- Let Claude analyze changes before resolving conflicts manually
+- Review resolution decisions to ensure they match intent
+
+### When to Use
+
+- **Before Pull Requests:** Get a clean linear history on top of latest upstream
+- **Feature Branches:** Replay your work onto the latest upstream state
+- **Fork Contribution:** Rebase your changes onto the original repo's branch
+- **Clean History:** When you prefer linear history over merge commits
+
+### Recovery
+
+- Use `git rebase --abort` to cancel during conflict resolution (Claude offers this)
+- Stashed changes are automatically restored if rebase is aborted
+- After rebase, commit hashes change — this is expected behavior
+
+---
+
 ## Tips and Tricks
 
 ### Git Workflow Integration
@@ -378,8 +491,9 @@ git checkout feature/api-improvements
    # Create feature branch
    git checkout -b feature/contribution
 
-   # Keep updated with upstream
-   /git:upstream-merge
+   # Keep updated with upstream (choose one)
+   /git:upstream-merge    # Creates merge commit
+   /git:upstream-rebase   # Clean linear history
 
    # Clean up before PR
    /git:squash
@@ -468,6 +582,7 @@ git push origin main
 | Rebase | `git rebase main` → manual conflict resolution | `/git:rebase` → intelligent auto-resolution |
 | Squash | `git rebase -i HEAD~5` → interactive editing | `/git:squash 2` → automatic grouping & messages |
 | Upstream merge | `git merge upstream/main` → manual conflicts | `/git:upstream-merge` → understands intent |
+| Upstream rebase | `git rebase upstream/main` → manual per-commit conflicts | `/git:upstream-rebase` → intelligent per-commit resolution |
 | Conflict resolution | Read markers, decide, edit, stage | Claude analyzes and resolves intelligently |
 | Commit messages | Write manually | Generated based on change analysis |
 
