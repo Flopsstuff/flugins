@@ -6,11 +6,11 @@
 
 **Author:** Flop (flop@hackerspace.by)
 
-**Version:** 1.0.0
+**Version:** 1.1.0
 
-**Keywords:** git, version-control, merge, workflow
+**Keywords:** git, version-control, merge, rebase, worktree, squash, workflow
 
-The Git plugin provides intelligent workflow management commands for common git operations with automated conflict resolution. It helps streamline rebasing, squashing commits, and merging from upstream branches while preserving the intent of your changes.
+The Git plugin provides intelligent workflow management commands for common git operations with automated conflict resolution. It helps streamline rebasing, squashing commits, merging from upstream branches, and managing worktrees while preserving the intent of your changes.
 
 ## Installation
 
