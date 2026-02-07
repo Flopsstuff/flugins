@@ -26,7 +26,7 @@
         "name": "Flop",
         "email": "flop@hackerspace.by"
       },
-      "keywords": ["git", "version-control", "merge", "rebase", "workflow"]
+      "keywords": ["git", "version-control", "merge", "rebase", "worktree", "squash", "workflow"]
     }
   ]
 }

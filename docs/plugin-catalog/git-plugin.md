@@ -30,6 +30,9 @@ claude plugin install git@flugins
 - [Squash Commits](#squash-commits) - Consolidate commits into logical groups
 - [Upstream Merge](#upstream-merge) - Merge from upstream with automatic conflict resolution
 - [Upstream Rebase](#upstream-rebase) - Rebase onto upstream branch with automatic conflict resolution
+- [Worktree Start](#worktree-start) - Create a new branch with a worktree in a sibling directory
+- [Worktree Done](#worktree-done) - Finalize worktree — squash, push, and clean up
+- [Worktree Kill](#worktree-kill) - Destroy worktree and delete branch without saving
 
 ---
 
@@ -460,14 +463,263 @@ git checkout feature/api-improvements
 
 ---
 
+## Worktree Start
+
+**Command:** `/git:worktree-start [branch-name]`
+
+Creates a new branch and a git worktree for it in a sibling directory. The directory is named after the current repo with a branch suffix, allowing you to work on multiple branches simultaneously without stashing or switching.
+
+### Usage
+
+```bash
+# Specify branch name
+/git:worktree-start feature/auth
+
+# Interactive — Claude will ask for the branch name
+/git:worktree-start
+```
+
+### Parameters
+
+- `branch-name` (optional): Name for the new branch. If omitted, Claude will ask.
+
+### What it does
+
+1. **Repository detection:**
+   - Identifies the repo root directory and its parent
+   - Determines the repo directory name (e.g., `my-project`)
+
+2. **Branch setup:**
+   - Uses provided branch name or asks the user
+   - Validates the branch doesn't already exist (offers to reuse if it does)
+
+3. **Directory creation:**
+   - Sanitizes branch name for directory use (`/` → `-`)
+   - Computes target path: `PARENT/REPO-BRANCH` (e.g., `../my-project-feature-auth`)
+   - Checks for directory conflicts
+
+4. **Worktree creation:**
+   - Creates the worktree with a new branch: `git worktree add -b BRANCH PATH`
+   - Or attaches to an existing branch: `git worktree add PATH BRANCH`
+
+5. **Switch to new worktree:**
+   - Changes into the new directory
+   - Shows status and confirms setup
+
+### Example Workflow
+
+```bash
+# You're in /projects/my-app on main branch
+/git:worktree-start feature/notifications
+
+# Claude creates:
+# - Branch: feature/notifications
+# - Worktree: /projects/my-app-feature-notifications
+# - Switches to the new directory
+
+# Now you can work on notifications without affecting main
+# Your original worktree at /projects/my-app stays on main
+```
+
+### Managing Worktrees
+
+```bash
+# List all worktrees
+git worktree list
+
+# Remove a worktree when done
+git worktree remove ../my-app-feature-notifications
+
+# Prune stale worktree entries
+git worktree prune
+```
+
+### Best Practices
+
+- Use worktrees when you need to work on multiple branches simultaneously
+- Useful for reviewing PRs while keeping your current work intact
+- Each worktree is independent — changes don't affect other worktrees
+- Remember to clean up worktrees when branches are merged
+
+### When to Use
+
+- **Parallel Development:** Work on a feature and a bugfix at the same time
+- **PR Reviews:** Check out a PR branch without disrupting your current work
+- **Quick Hotfixes:** Create a separate worktree for an urgent fix while mid-feature
+- **Experiments:** Try something in isolation without stashing current changes
+
+---
+
+## Worktree Done
+
+**Command:** `/git:worktree-done`
+
+Finalizes work in the current worktree: squashes commits, pushes the branch, removes the worktree, and switches back to the main working tree.
+
+### Usage
+
+```bash
+/git:worktree-done
+```
+
+### What it does
+
+1. **Worktree verification:**
+   - Confirms you are in a worktree (not the main working tree)
+   - Identifies the main worktree path to return to
+
+2. **Uncommitted changes check:**
+   - If changes exist, offers to commit, discard, or abort
+
+3. **Commit analysis:**
+   - Lists all commits on the branch since the base branch
+   - Shows commit count and summaries
+
+4. **Squash (optional):**
+   - If more than 1 commit, offers to squash into a single commit with a generated message
+   - Can also squash into N logical groups
+   - Or keep commits as-is
+
+5. **Push (optional):**
+   - Pushes the branch to remote
+   - Uses `--force-with-lease` if history was rewritten by squash
+
+6. **Cleanup:**
+   - Switches back to the main worktree directory
+   - Removes the worktree (`git worktree remove`)
+   - If the branch was merged, offers to delete it
+
+### Example Workflow
+
+```bash
+# You're in /projects/my-app-feature-auth worktree
+# Done with your work, all committed
+
+/git:worktree-done
+
+# Claude analyzes:
+# "Branch feature/auth has 5 commits:
+#  - Add auth middleware
+#  - Add login endpoint
+#  - Add tests
+#  - Fix token expiry
+#  - Update docs
+#
+#  Squash into single commit? (Recommended)"
+
+# After squash:
+# "Squashed into: feat: add authentication with login endpoint and middleware
+#  Push to origin? (Recommended)"
+
+# After push:
+# "Pushed feature/auth to origin.
+#  Removing worktree /projects/my-app-feature-auth...
+#  Switched back to /projects/my-app (main branch).
+#  Done!"
+```
+
+### Full Worktree Lifecycle
+
+```bash
+# 1. Start — create worktree for a new task
+/git:worktree-start feature/auth
+
+# 2. Work — make changes, commit as you go
+git add . && git commit -m "WIP"
+
+# 3a. Finish — squash, push, clean up
+/git:worktree-done
+
+# 3b. Or abort — destroy everything and go back
+/git:worktree-kill
+```
+
+### Best Practices
+
+- Commit all your work before running this command
+- Let Claude generate squash commit messages from your commit history
+- Push before removing the worktree to avoid losing work
+- Use this instead of manually cleaning up worktrees
+
+---
+
+## Worktree Kill
+
+**Command:** `/git:worktree-kill`
+
+Destroys the current worktree and deletes its branch. No squash, no push — just clean removal. Use when the work in the worktree is no longer needed.
+
+### Usage
+
+```bash
+/git:worktree-kill
+```
+
+### What it does
+
+1. **Worktree verification:**
+   - Confirms you are in a worktree (not the main working tree)
+   - Identifies the main worktree path to return to
+
+2. **Confirmation:**
+   - Shows the worktree path and branch name
+   - Warns that all uncommitted and unpushed work will be lost
+   - Requires explicit confirmation before proceeding
+
+3. **Destruction:**
+   - Switches back to the main worktree
+   - Force-removes the worktree (`git worktree remove --force`)
+   - Force-deletes the branch (`git branch -D`)
+   - Deletes the remote branch if it was pushed
+
+### Example Workflow
+
+```bash
+# You're in /projects/my-app-experiment-xyz worktree
+# The experiment didn't work out
+
+/git:worktree-kill
+
+# Claude confirms:
+# "This will permanently remove:
+#  - Worktree: /projects/my-app-experiment-xyz
+#  - Branch: experiment/xyz
+#  All uncommitted and unpushed work will be lost.
+#  Proceed?"
+
+# After confirmation:
+# "Worktree removed. Branch deleted.
+#  Switched back to /projects/my-app (main branch)."
+```
+
+### Worktree Done vs Worktree Kill
+
+| Aspect | `/git:worktree-done` | `/git:worktree-kill` |
+|--------|---------------------|---------------------|
+| Purpose | Finish and preserve work | Discard and clean up |
+| Squash | Optional | No |
+| Push | Optional | No (deletes remote branch if exists) |
+| Branch | Kept (or deleted if merged) | Force-deleted |
+| Data loss | None | All unpushed work lost |
+
+### When to Use
+
+- **Failed Experiments:** The approach didn't work, discard everything
+- **Abandoned Features:** Requirements changed, work is no longer needed
+- **Quick Cleanup:** Remove stale worktrees that are no longer relevant
+- **Reset:** Start fresh on a different approach
+
+---
+
 ## Tips and Tricks
 
 ### Git Workflow Integration
 
 1. **Feature Branch Workflow:**
    ```bash
-   # Start feature
-   git checkout -b feature/new-feature
+   # Start feature (choose one)
+   git checkout -b feature/new-feature    # Same worktree
+   /git:worktree-start feature/new-feature # Separate worktree
 
    # Work on feature with multiple commits
    git commit -m "WIP: initial implementation"
@@ -583,6 +835,9 @@ git push origin main
 | Squash | `git rebase -i HEAD~5` → interactive editing | `/git:squash 2` → automatic grouping & messages |
 | Upstream merge | `git merge upstream/main` → manual conflicts | `/git:upstream-merge` → understands intent |
 | Upstream rebase | `git rebase upstream/main` → manual per-commit conflicts | `/git:upstream-rebase` → intelligent per-commit resolution |
+| Worktree | `git worktree add -b branch ../dir` → manual setup | `/git:worktree-start branch` → auto-naming, auto-switch |
+| Worktree cleanup | `git worktree remove` + manual squash/push/cd | `/git:worktree-done` → squash, push, cleanup in one step |
+| Worktree discard | `git worktree remove --force` + `git branch -D` | `/git:worktree-kill` → confirm and destroy |
 | Conflict resolution | Read markers, decide, edit, stage | Claude analyzes and resolves intelligently |
 | Commit messages | Write manually | Generated based on change analysis |
 
