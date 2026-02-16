@@ -1,6 +1,6 @@
 {
   "name": "docs",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Generate and keep documentation in sync with your codebase",
   "homepage": "https://github.com/Flopsstuff/flugins",
   "author": {
