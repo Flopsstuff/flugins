@@ -154,8 +154,14 @@ The loop *commits* every FIX locally, but defers `git push`, the reply, and the 
 **REJECT path:**
 
 1. No edit. No commit.
-2. Reply explaining *why* the claim doesn't apply here — specific (not "disagree"): cite the file/line, the project convention, or the existing test that already covers it.
-3. Resolve the thread immediately — REJECT replies don't depend on any SHA, so there's no reason to batch them.
+2. Compose the reply body — specific (not "disagree"): cite the file/line, the project convention, or the existing test that already covers it.
+3. Reply + resolve in one call with the bundled script:
+
+   ```bash
+   bash "${CLAUDE_SKILL_DIR}/scripts/resolve-comment.sh" "$COMMENT_ID" "$THREAD_ID" "$REPLY_BODY"
+   ```
+
+   The script auto-detects the repo and PR number, posts the REST reply, then marks the thread resolved via GraphQL. If the reply fails, the thread stays open. If the resolve fails after a successful reply, the script exits non-zero and prints which thread still needs manual resolution.
 
 **SKIP path:**
 
@@ -163,24 +169,30 @@ Leave the thread open and move on. Use this only when the comment needs human ju
 
 ### 4. Posting replies and resolving threads
 
-Replying is REST, resolving is GraphQL — they're separate APIs and both are required.
+Both the REJECT path above and the final batch in step 5 use the bundled helper:
 
 ```bash
-# Reply to an inline comment (creates a child comment in the same thread)
-REPLY_BODY='Fixed in <SHA>. <one-line what/why>.'
+bash "${CLAUDE_SKILL_DIR}/scripts/resolve-comment.sh" "$COMMENT_ID" "$THREAD_ID" "$REPLY_BODY"
+```
+
+It encapsulates the two-API dance: **REST** for the reply (`POST /pulls/<pr>/comments/<id>/replies`) and **GraphQL** for the thread resolve (`resolveReviewThread(input:{threadId:$t})`). The script detects the repo via `gh repo view` and the PR number via `gh pr view`, so only the three arguments need to be provided by the caller.
+
+If you ever need to do this by hand (debugging, the script is unavailable, whatever), here's the underlying dance — plus two traps easy to hit:
+
+```bash
+# Reply (REST)
 gh api "repos/$OWNER/$REPO/pulls/$PR/comments/$COMMENT_ID/replies" \
   -f body="$REPLY_BODY" --jq '.id'
 
-# Mark the thread resolved (GraphQL — note the curly-brace input syntax)
+# Resolve the thread (GraphQL)
 gh api graphql \
-  -f query='mutation { resolveReviewThread(input:{threadId:"'"$THREAD_ID"'"}) { thread { isResolved } } }' \
+  -f query='mutation($t:ID!){resolveReviewThread(input:{threadId:$t}){thread{isResolved}}}' \
+  -f t="$THREAD_ID" \
   --jq '.data.resolveReviewThread.thread.isResolved'
 ```
 
-Two traps that are easy to hit:
-
-- The GraphQL input is an **object**, not a string. `input:"PRRT_..."` → `argumentLiteralsIncompatible`. Always `input:{threadId:"..."}`.
-- If the `$REPLY_BODY` has apostrophes (`'`), don't try to nest HEREDOCs inside `gh api ... -f body="$(cat <<EOF…EOF)"` — bash quote-nesting will bite you. Put the body in a shell variable first and pass `-f body="$REPLY_BODY"`.
+- The GraphQL `input` is an **object**, not a string. `input:"PRRT_..."` → `argumentLiteralsIncompatible`. Always `input:{threadId:"..."}` (or pass via a GraphQL variable as above).
+- If `$REPLY_BODY` has apostrophes, don't nest HEREDOCs inside `gh api ... -f body="$(cat <<EOF…EOF)"` — bash quote-nesting will bite you. Put the body in a shell variable first and pass `-f body="$REPLY_BODY"`.
 
 ### 5. After the loop — validate, push once, batch the replies
 
@@ -189,7 +201,14 @@ Now that every FIX-commit is locally validated against unit tests, run the final
 1. **E2E / integration if needed** — if the project has an end-to-end or integration suite (typical names: `test:e2e`, `tests/integration/`, `pytest -m e2e`, `cargo test --test integration`, etc.) and **any commit in the batch touches integration boundaries** (HTTP clients, authentication, external APIs, databases, message queues, filesystem-as-contract) where unit mocks can't catch real regressions — run it. If the whole batch is docs + trivial refactors, skip it. Note that these suites are often slow and may hit live external services, so gate them intentionally.
 2. **Ask the user to confirm the push** — the standard convention in most projects is that push is an explicit action, never implicit. Show the user the list of queued commits (`git log origin/<branch>..HEAD --oneline`) and the queued replies, then wait for a yes.
 3. `git push`.
-4. Replay the queued replies — for each `{comment_id, thread_id, sha, short_note}`, post the reply *then* resolve the thread. Doing both in the same step keeps the PR UI consistent.
+4. Replay the queued replies — for each `{comment_id, thread_id, sha, short_note}`, call the bundled helper:
+
+   ```bash
+   bash "${CLAUDE_SKILL_DIR}/scripts/resolve-comment.sh" \
+     "$comment_id" "$thread_id" "Fixed in $sha. $short_note"
+   ```
+
+   The script posts the reply and resolves the thread in one shot. If any individual call exits non-zero, note the failing `{comment_id, thread_id}`, move on to the rest, and surface the leftovers in the final summary so the user can resolve them by hand.
 
 If E2E fails, do **not** push. Fix the offending commit(s) (likely `git reset` or follow-up fix), re-validate, then come back to step 2. The queued replies still apply as long as the SHAs don't change.
 

@@ -76,13 +76,13 @@ You can also invoke it explicitly via the Claude Code skill UI.
    - **Waits for your explicit approval** before touching anything.
 5. **Applies the decision.**
    - **FIX** → edit → run the project's full unit test suite (auto-detected from `CLAUDE.md`, `README`, `package.json`, `Makefile`, `pyproject.toml`, `Cargo.toml`, etc.) → one commit per fix → **queue** the reply (don't post yet).
-   - **REJECT** → reply immediately with justification → resolve the thread. No git changes.
+   - **REJECT** → reply + resolve in one call via the bundled `skills/resolve-coderabbit/scripts/resolve-comment.sh` helper. No git changes.
    - **SKIP** → leave the thread open, move on.
 6. **Batched final step.**
    - Runs E2E/integration suite only if the batch touches integration boundaries (HTTP, auth, external APIs, DBs).
    - Shows you the queued commits and queued replies, asks for push confirmation.
    - `git push` once.
-   - Replays all queued replies — posts each reply with its SHA, then resolves its thread.
+   - Replays all queued replies by calling `resolve-comment.sh` once per item (REST reply + GraphQL thread-resolve in one shot).
 7. **Summary** — reports fixed / rejected / skipped counts and which threads remain open.
 
 ### Why Batched Replies
