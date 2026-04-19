@@ -5,7 +5,7 @@
 #
 # Usage:
 #   bash "${CLAUDE_SKILL_DIR}/scripts/resolve-comment.sh" \
-#     <comment_id> <thread_id> <reply_body>
+#     <comment_id> <thread_id> <reply_body> [<pr_number>]
 #
 # Arguments:
 #   comment_id  Numeric ID of the inline comment being replied to. The
@@ -16,10 +16,17 @@
 #   reply_body  Full body text of the reply. Quote it so the whole
 #               string is a single shell argument; apostrophes inside
 #               are fine.
+#   pr_number   Optional. If given, the reply is posted against this
+#               PR explicitly. If omitted, falls back to
+#               `gh pr view --json number` for the current branch.
+#               Pass it through whenever the skill was invoked with an
+#               explicit PR argument ($ARGUMENTS), otherwise replies
+#               can land on the wrong PR if you're checked out on a
+#               different branch.
 #
 # Behaviour:
-#   1. Detects OWNER/REPO via `gh repo view --json nameWithOwner` and
-#      the PR number via `gh pr view --json number`.
+#   1. Detects OWNER/REPO via `gh repo view --json nameWithOwner`; uses
+#      the 4th arg for PR, or falls back to `gh pr view --json number`.
 #   2. Posts the reply (REST: POST /pulls/<pr>/comments/<id>/replies).
 #   3. Marks the thread resolved (GraphQL: resolveReviewThread).
 #   4. Prints a one-line summary. Exits 0 on success.
@@ -35,7 +42,7 @@ set -u
 
 if [ "$#" -lt 3 ]; then
   cat >&2 <<EOF
-Usage: $0 <comment_id> <thread_id> <reply_body>
+Usage: $0 <comment_id> <thread_id> <reply_body> [<pr_number>]
 Missing required argument.
 EOF
   exit 2
@@ -44,6 +51,7 @@ fi
 COMMENT_ID="$1"
 THREAD_ID="$2"
 REPLY_BODY="$3"
+PR="${4:-}"
 
 if [ -z "$COMMENT_ID" ] || [ -z "$THREAD_ID" ] || [ -z "$REPLY_BODY" ]; then
   echo "error: empty argument (comment_id, thread_id, reply_body all required)" >&2
@@ -56,9 +64,11 @@ if [ -z "$REPO_NWO" ]; then
   exit 1
 fi
 
-PR=$(gh pr view --json number --jq .number 2>/dev/null)
 if [ -z "$PR" ]; then
-  echo "error: cannot detect PR number for the current branch (open a PR first, or check out the PR branch)" >&2
+  PR=$(gh pr view --json number --jq .number 2>/dev/null)
+fi
+if [ -z "$PR" ]; then
+  echo "error: no PR number supplied (4th arg) and cannot detect one from the current branch" >&2
   exit 1
 fi
 

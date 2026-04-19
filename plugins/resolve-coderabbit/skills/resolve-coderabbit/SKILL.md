@@ -62,7 +62,7 @@ Each element of the array is shaped:
 
 An empty array means there's nothing to do — either the bot hasn't reviewed the PR, or everything is already resolved. Exit code is still 0 in that case; surface the result to the user and stop.
 
-`resolve-comment.sh` auto-detects the same PR + repo the same way, so you don't need to thread a `$PR` value through the later steps.
+Hold onto the `$PR` value — when you invoke `resolve-comment.sh` in steps 3d and 5 below, **always pass it as the 4th argument**. The helper can auto-detect from the current branch as a fallback, but that only matches if you happen to be on the PR's branch. Passing `$PR` through explicitly keeps every reply pinned to the PR you actually started with, regardless of which branch is checked out at reply time.
 
 ### 2. Seed a task list — one task per unresolved comment
 
@@ -166,10 +166,10 @@ The loop *commits* every FIX locally, but defers `git push`, the reply, and the 
 3. Reply + resolve in one call with the bundled script:
 
    ```bash
-   bash "${CLAUDE_SKILL_DIR}/scripts/resolve-comment.sh" "$COMMENT_ID" "$THREAD_ID" "$REPLY_BODY"
+   bash "${CLAUDE_SKILL_DIR}/scripts/resolve-comment.sh" "$COMMENT_ID" "$THREAD_ID" "$REPLY_BODY" "$PR"
    ```
 
-   The script auto-detects the repo and PR number, posts the REST reply, then marks the thread resolved via GraphQL. If the reply fails, the thread stays open. If the resolve fails after a successful reply, the script exits non-zero and prints which thread still needs manual resolution.
+   The script auto-detects the repo; pass `$PR` as the 4th argument so the reply lands on the right PR regardless of current branch. It posts the REST reply, then marks the thread resolved via GraphQL. If the reply fails, the thread stays open. If the resolve fails after a successful reply, the script exits non-zero and prints which thread still needs manual resolution.
 
 **SKIP path:**
 
@@ -180,7 +180,7 @@ Leave the thread open and move on. Use this only when the comment needs human ju
 Both the REJECT path above and the final batch in step 5 use the bundled helper:
 
 ```bash
-bash "${CLAUDE_SKILL_DIR}/scripts/resolve-comment.sh" "$COMMENT_ID" "$THREAD_ID" "$REPLY_BODY"
+bash "${CLAUDE_SKILL_DIR}/scripts/resolve-comment.sh" "$COMMENT_ID" "$THREAD_ID" "$REPLY_BODY" "$PR"
 ```
 
 It encapsulates the two-API dance: **REST** for the reply (`POST /pulls/<pr>/comments/<id>/replies`) and **GraphQL** for the thread resolve (`resolveReviewThread(input:{threadId:$t})`). The script detects the repo via `gh repo view` and the PR number via `gh pr view`, so only the three arguments need to be provided by the caller.
@@ -214,7 +214,7 @@ Every FIX commit was already unit-tested individually in step 3d.2, but run the 
 
    ```bash
    bash "${CLAUDE_SKILL_DIR}/scripts/resolve-comment.sh" \
-     "$comment_id" "$thread_id" "Fixed in $sha. $short_note"
+     "$comment_id" "$thread_id" "Fixed in $sha. $short_note" "$PR"
    ```
 
    The script posts the reply and resolves the thread in one shot. If any individual call exits non-zero, note the failing `{comment_id, thread_id}`, move on to the rest, and surface the leftovers in the final summary so the user can resolve them by hand.
