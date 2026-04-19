@@ -4,7 +4,7 @@
 
 **Description:** Smart git workflow commands with intelligent conflict resolution
 
-**Author:** Flop (flop@hackerspace.by)
+**Author:** Flop (flopspm@gmail.com)
 
 **Version:** 1.1.0
 

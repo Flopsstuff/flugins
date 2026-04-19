@@ -234,6 +234,9 @@ This repository uses gitmoji (via `.gitpmoji/`). Common prefixes:
 - `git` — Smart git workflow commands with intelligent conflict resolution
   - Commands: `/git:rebase`, `/git:squash`, `/git:upstream-merge`, `/git:upstream-rebase`, `/git:worktree-start`, `/git:worktree-done`, `/git:worktree-kill`
   - Features: Intelligent conflict resolution, automatic commit squashing, upstream merging/rebasing, worktree lifecycle management
+- `resolve-coderabbit` — Walk through CodeRabbit inline PR comments with per-comment user approval, then batch push + reply + resolve
+  - Skills: `resolve-coderabbit` (model-invoked or user-invocable)
+  - Features: Per-comment verify-before-fix loop, one-commit-per-fix, unit-test gate, batched push with SHA-referenced replies and GraphQL thread resolves
 
 Refer to `plugins/docs/` and `plugins/git/` as reference implementations for plugin structure.
 

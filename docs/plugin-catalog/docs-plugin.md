@@ -4,7 +4,7 @@
 
 **Description:** Generate and keep documentation in sync with your codebase
 
-**Author:** Flop (flop@hackerspace.by)
+**Author:** Flop (flopspm@gmail.com)
 
 **Version:** 1.0.0
 

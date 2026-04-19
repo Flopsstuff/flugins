@@ -1,0 +1,11 @@
+{
+  "name": "resolve-coderabbit",
+  "version": "0.1.0",
+  "description": "Walk through CodeRabbit inline PR comments, verify each against the current code, and batch-resolve with commits and replies",
+  "homepage": "https://github.com/Flopsstuff/flugins",
+  "author": {
+    "name": "Flop",
+    "email": "flopspm@gmail.com"
+  },
+  "keywords": ["review", "coderabbit", "github", "pr", "pull-request", "bot-comments"]
+}

@@ -404,7 +404,7 @@ plugins/docs/
   "description": "Generate and keep documentation in sync with your codebase",
   "author": {
     "name": "Flop",
-    "email": "flop@hackerspace.by"
+    "email": "flopspm@gmail.com"
   },
   "keywords": ["documentation", "sync", "git", "automation"]
 }
