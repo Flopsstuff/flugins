@@ -64,10 +64,7 @@ You can also invoke it explicitly via the Claude Code skill UI.
 
 0. **Dependency self-check.** Runs the bundled `skills/resolve-coderabbit/scripts/self-check.sh` first, which verifies `git`, `gh`, `jq`, a valid `gh auth` session, and that the current directory is inside a git working tree. If anything fails, the skill stops and walks you through `skills/resolve-coderabbit/docs/setup-dependencies.md` for your OS before continuing.
 1. **Resolve PR context.** Reads the PR number from arguments, or falls back to the PR attached to the current branch (`gh pr view --json number --jq .number`), or asks you.
-2. **Pull the comment set.**
-   - REST (`/pulls/{n}/comments`) for comment bodies, file paths, lines.
-   - GraphQL (`reviewThreads`) for thread IDs and the `isResolved` flag — REST alone can't resolve threads.
-   - Filters to unresolved threads where the first comment author is `coderabbitai`.
+2. **Pull the comment set** via the bundled `skills/resolve-coderabbit/scripts/fetch-comments.sh`. A single GraphQL `reviewThreads` query returns every thread along with the first comment's body, path, line, and ID; the script filters to unresolved threads authored by `coderabbitai` and prints a JSON array ready to iterate over.
 3. **Seeds a task list** — one task per unresolved comment with a severity marker and `file:line`.
 4. **Loops over each comment** — for every one:
    - Extracts severity, the bolded claim, the proposed fix diff, and the 🤖 Prompt for AI Agents block.

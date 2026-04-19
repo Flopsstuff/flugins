@@ -38,37 +38,31 @@ It verifies `git`, `gh`, `jq`, `gh auth status`, and that the current directory 
 
 This step is not optional and not skippable, even for "I just did this yesterday" scenarios — `gh auth` tokens can expire, `jq` can disappear after a system update, and a silent tool failure partway through the comment loop is far worse than a 200ms check at the start.
 
-### 1. Resolve the PR number and pull the comment set
+### 1. Pull the unresolved CodeRabbit comments
+
+Use the bundled helper. It wraps a single GraphQL `reviewThreads` query (the body lives on the thread's first comment, so no extra REST round-trip is needed) and prints a JSON array of **only** unresolved threads authored by `coderabbitai` directly to stdout:
 
 ```bash
-# PR number (from $ARGUMENTS or the current branch)
-PR=${ARGUMENTS:-$(gh pr view --json number --jq .number)}
-
-# Inline comments (REST) — gets the body, file, line, and comment_id
-gh api "repos/$OWNER/$REPO/pulls/$PR/comments" \
-  --jq '.[] | {id, path, line, body}' > /tmp/pr-$PR-comments.json
-
-# Thread IDs + resolved flag (GraphQL) — REST cannot resolve threads
-gh api graphql -f query='query {
-  repository(owner:"'"$OWNER"'",name:"'"$REPO"'") {
-    pullRequest(number:'"$PR"') {
-      reviewThreads(first:100) {
-        nodes {
-          id
-          isResolved
-          comments(first:1) { nodes { databaseId author { login } path line } }
-        }
-      }
-    }
-  }
-}' --jq '.data.repository.pullRequest.reviewThreads.nodes[]
-  | select(.isResolved == false)
-  | select(.comments.nodes[0].author.login == "coderabbitai")
-  | {thread_id: .id, comment_id: .comments.nodes[0].databaseId, path: .comments.nodes[0].path, line: .comments.nodes[0].line}' \
-  > /tmp/pr-$PR-threads.json
+bash "${CLAUDE_SKILL_DIR}/scripts/fetch-comments.sh" "${ARGUMENTS:-}"
 ```
 
-`$OWNER/$REPO` can come from `gh repo view --json nameWithOwner --jq .nameWithOwner`.
+`$ARGUMENTS` is the optional PR number; if empty, the script auto-detects the PR from the current branch. Don't redirect the output to a file — read it straight from stdout into context.
+
+Each element of the array is shaped:
+
+```json
+{
+  "thread_id":  "PRRT_kwDO...",
+  "comment_id": 1234567890,
+  "path":       "src/foo.ts",
+  "line":       42,
+  "body":       "**issue**\n\n..."
+}
+```
+
+An empty array means there's nothing to do — either the bot hasn't reviewed the PR, or everything is already resolved. Exit code is still 0 in that case; surface the result to the user and stop.
+
+`resolve-comment.sh` auto-detects the same PR + repo the same way, so you don't need to thread a `$PR` value through the later steps.
 
 ### 2. Seed a task list — one task per unresolved comment
 
