@@ -55,12 +55,18 @@ fi
 OWNER="${REPO_NWO%%/*}"
 REPO="${REPO_NWO##*/}"
 
-gh api graphql \
+# --paginate walks every page of `reviewThreads` via $endCursor until
+# pageInfo.hasNextPage is false, so PRs with more than 100 threads no
+# longer silently drop comments. --jq emits one object per matching
+# thread (NDJSON); the final `jq -s '.'` slurps the stream from all
+# pages back into a single JSON array.
+gh api graphql --paginate \
   -f query='
-    query($owner:String!,$repo:String!,$pr:Int!) {
+    query($owner:String!,$repo:String!,$pr:Int!,$endCursor:String) {
       repository(owner:$owner, name:$repo) {
         pullRequest(number:$pr) {
-          reviewThreads(first:100) {
+          reviewThreads(first:100, after:$endCursor) {
+            pageInfo { hasNextPage endCursor }
             nodes {
               id
               isResolved
@@ -79,8 +85,7 @@ gh api graphql \
       }
     }' \
   -f owner="$OWNER" -f repo="$REPO" -F pr="$PR" \
-  --jq '[
-    .data.repository.pullRequest.reviewThreads.nodes[]
+  --jq '.data.repository.pullRequest.reviewThreads.nodes[]
     | select(.isResolved == false)
     | select(.comments.nodes[0].author.login == "coderabbitai")
     | {
@@ -89,5 +94,5 @@ gh api graphql \
         path:       .comments.nodes[0].path,
         line:       .comments.nodes[0].line,
         body:       .comments.nodes[0].body
-      }
-  ]'
+      }' \
+  | jq -s '.'
