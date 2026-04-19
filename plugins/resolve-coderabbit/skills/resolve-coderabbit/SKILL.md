@@ -93,7 +93,21 @@ If the claim is a real problem in the current code, it's a **fix**. If the code 
 
 **3c. Present the decision to the user**
 
-Output a compact block per comment:
+Prefer the native `AskUserQuestion` tool — it renders each comment as a radio question with a side-by-side preview pane showing the code and the bot's proposed diff, so the user can triage several comments in one dialog instead of typing `y/n/s` for each.
+
+Rules:
+- **Batch by 4.** `AskUserQuestion` accepts 1–4 questions per call. If there are more comments, issue multiple `AskUserQuestion` calls back-to-back (one per batch of ≤4), don't try to cram everything into one.
+- **One question per comment.** Use the `question` field for `C<N>/<TOTAL> · <severity> · <path:line>: <one-line claim>` and the `header` field for a short chip like `C3: foo.ts:42`.
+- **Three options, single-select (not `multiSelect`):**
+  - **FIX** — `description`: one-line summary of the edit you'll make (e.g. "Add null check before .trim() on line 42"). Put the real surrounding code + the bot's proposed diff into the `preview` field so the user sees what they're approving.
+  - **REJECT** — `description`: one-line reason the claim doesn't apply here (e.g. "Already guarded at caller, see foo.ts:20"). No preview needed unless the code context helps justify it.
+  - **SKIP** — `description`: `Leave the thread open for human judgment.` No preview.
+- If you recommend one option, put it first and add `(Recommended)` to its `label` per the `AskUserQuestion` contract.
+- The tool auto-adds an **Other** free-text option — the user can override your framing with any text. Treat that text as a hint and re-read the code before acting on it.
+
+If the user picks an option that contradicts your recommendation (e.g. you proposed FIX, they picked REJECT), honor their choice — they see context you may have missed. Don't second-guess.
+
+**Fallback (headless / non-interactive sessions where `AskUserQuestion` isn't available):** print this compact block per comment and wait for `y` / `n` / `s`:
 
 ```text
 ━━━ C<N>/<TOTAL> · 🟠 Major · path/to/file.ts:42 ━━━
@@ -113,7 +127,7 @@ Proposed action:
 OK to proceed? (y/apply = go, n/reject = reject instead, s/skip = leave open)
 ```
 
-Wait for the user's answer before doing anything destructive. The user's `n` can flip a FIX into a REJECT and vice versa.
+Either way, wait for the user's answer before doing anything destructive.
 
 **3d. Apply the decision**
 
@@ -190,12 +204,13 @@ gh api graphql \
 
 ### 5. After the loop — validate, push once, batch the replies
 
-Now that every FIX-commit is locally validated against unit tests, run the final gates before anything leaves the machine:
+Every FIX commit was already unit-tested individually in step 3d.2, but run the final gates on the whole batch before anything leaves the machine:
 
-1. **E2E / integration if needed** — if the project has an end-to-end or integration suite (typical names: `test:e2e`, `tests/integration/`, `pytest -m e2e`, `cargo test --test integration`, etc.) and **any commit in the batch touches integration boundaries** (HTTP clients, authentication, external APIs, databases, message queues, filesystem-as-contract) where unit mocks can't catch real regressions — run it. If the whole batch is docs + trivial refactors, skip it. Note that these suites are often slow and may hit live external services, so gate them intentionally.
-2. **Ask the user to confirm the push** — the standard convention in most projects is that push is an explicit action, never implicit. Show the user the list of queued commits (`git log origin/<branch>..HEAD --oneline`) and the queued replies, then wait for a yes.
-3. `git push`.
-4. Replay the queued replies — for each `{comment_id, thread_id, sha, short_note}`, call the bundled helper:
+1. **Full unit suite on HEAD** — re-run the same command the project uses for unit tests (the one detected in step 3d.2). Per-commit runs catch *that* commit, but docs-only fixes skipped the gate by design, and the interaction of several fixes on HEAD isn't validated until now. This is cheap (seconds to a minute on most projects) and symmetric with the E2E gate below. If it fails, the offending commit is somewhere in the batch — bisect or fix the top of the stack, then retry.
+2. **E2E / integration if needed** — if the project has an end-to-end or integration suite (typical names: `test:e2e`, `tests/integration/`, `pytest -m e2e`, `cargo test --test integration`, etc.) and **any commit in the batch touches integration boundaries** (HTTP clients, authentication, external APIs, databases, message queues, filesystem-as-contract) where unit mocks can't catch real regressions — run it. If the whole batch is docs + trivial refactors, skip it. Note that these suites are often slow and may hit live external services, so gate them intentionally.
+3. **Ask the user to confirm the push** — the standard convention in most projects is that push is an explicit action, never implicit. Show the user the list of queued commits (`git log origin/<branch>..HEAD --oneline`) and the queued replies, then wait for a yes.
+4. `git push`.
+5. Replay the queued replies — for each `{comment_id, thread_id, sha, short_note}`, call the bundled helper:
 
    ```bash
    bash "${CLAUDE_SKILL_DIR}/scripts/resolve-comment.sh" \
@@ -204,7 +219,7 @@ Now that every FIX-commit is locally validated against unit tests, run the final
 
    The script posts the reply and resolves the thread in one shot. If any individual call exits non-zero, note the failing `{comment_id, thread_id}`, move on to the rest, and surface the leftovers in the final summary so the user can resolve them by hand.
 
-If E2E fails, do **not** push. Fix the offending commit(s) (likely `git reset` or follow-up fix), re-validate, then come back to step 2. The queued replies still apply as long as the SHAs don't change.
+If any gate fails (unit or E2E), do **not** push. Fix the offending commit(s) (likely `git reset` or a follow-up fix), re-validate, then come back to step 3. The queued replies still apply as long as the SHAs don't change.
 
 Report back to the user with a short summary:
 

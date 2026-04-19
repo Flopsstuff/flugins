@@ -69,13 +69,15 @@ You can also invoke it explicitly via the Claude Code skill UI.
 4. **Loops over each comment** — for every one:
    - Extracts severity, the bolded claim, the proposed fix diff, and the 🤖 Prompt for AI Agents block.
    - Reads the real file at the claimed line and checks if the bot's claim still holds.
-   - Presents a compact decision block to you with the relevant code and a proposed action (FIX / REJECT / SKIP).
-   - **Waits for your explicit approval** before touching anything.
+   - Presents the decision via `AskUserQuestion` — native radio UI with a preview pane showing the code + bot's diff. Batches by 4 (the tool's per-call cap). Options per comment: **FIX** / **REJECT** / **SKIP**.
+   - Falls back to a plain-text `y/n/s` block in headless sessions.
+   - **Waits for your explicit choice** before touching anything.
 5. **Applies the decision.**
    - **FIX** → edit → run the project's full unit test suite (auto-detected from `CLAUDE.md`, `README`, `package.json`, `Makefile`, `pyproject.toml`, `Cargo.toml`, etc.) → one commit per fix → **queue** the reply (don't post yet).
    - **REJECT** → reply + resolve in one call via the bundled `skills/resolve-coderabbit/scripts/resolve-comment.sh` helper. No git changes.
    - **SKIP** → leave the thread open, move on.
 6. **Batched final step.**
+   - Runs the full unit suite on HEAD once more (per-commit runs skip docs-only fixes, so this catches combined-batch regressions).
    - Runs E2E/integration suite only if the batch touches integration boundaries (HTTP, auth, external APIs, DBs).
    - Shows you the queued commits and queued replies, asks for push confirmation.
    - `git push` once.
