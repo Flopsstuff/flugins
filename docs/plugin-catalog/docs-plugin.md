@@ -6,7 +6,7 @@
 
 **Author:** Flop (flopspm@gmail.com)
 
-**Version:** 1.0.0
+**Version:** 1.1.0
 
 **Keywords:** documentation, sync, git, automation
 
@@ -220,18 +220,19 @@ The sync command thoroughly checks:
 **Skill:** `docs-loader`
 **Type:** Model-invoked (automatic)
 
-The Documentation Loader skill automatically loads relevant project documentation into context before Claude performs code-related tasks. This ensures changes align with project patterns, architecture, and conventions.
+The Documentation Loader skill automatically loads relevant project documentation into context before Claude performs code-related tasks (features, refactoring, bugs, architecture). This ensures changes align with project patterns, architecture, and conventions.
 
 ### How it Works
 
-When you ask Claude to work with code (adding features, refactoring, fixing bugs, etc.), this skill:
+When you ask Claude to work with code, this skill delegates discovery and reading to the `Explore` subagent in a single call. The subagent:
 
-1. **Detects documentation need** - Determines if loading docs would be helpful for the task
-2. **Locates documentation** - Finds docs in `docs/`, `documentation/`, or `.docs/` folders
-3. **Reads the index** - Loads `index.md` or `README.md` to understand documentation structure
-4. **Identifies relevant docs** - Selects 2-4 most relevant documents based on the task
-5. **Loads into context** - Reads selected docs so Claude can reference them during work
-6. **References during work** - Aligns implementation with documented patterns and architecture
+1. **Searches documentation directories** - Looks in `docs/`, `documentation/`, or `.docs/`
+2. **Reads the index** - Loads `index.md` or `README.md` to understand the structure
+3. **Selects relevant docs** - Picks the 2–4 most relevant files for the user's task
+4. **Spot-checks claims** - Verifies key file paths, function names, and patterns against the actual code
+5. **Returns the contents** - Hands back file contents plus a `⚠️ DOCS MISMATCH` block if any discrepancy was found
+
+Claude then uses the loaded documentation to align with documented patterns, cite specific sections when making decisions, and warn the user about any drift between docs and code.
 
 ### When it Activates
 
