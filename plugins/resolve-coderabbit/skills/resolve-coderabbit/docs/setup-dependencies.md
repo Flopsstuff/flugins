@@ -77,7 +77,7 @@ The self-check was run from a directory that is not inside a git working tree. `
 
 ```bash
 cd /path/to/your/repo
-bash "${CLAUDE_PLUGIN_ROOT}/scripts/self-check.sh"
+bash "${CLAUDE_SKILL_DIR}/scripts/self-check.sh"
 ```
 
 If the directory *should* be a repo but isn't, you probably need `git clone <url>` (for a fresh checkout) or `git init` (for a new project you intend to push to GitHub later — note the skill still needs an **already-opened PR**, so a brand-new repo won't do until you push and open one).
@@ -89,7 +89,7 @@ If the directory *should* be a repo but isn't, you probably need `git clone <url
 Re-run the self-check:
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/scripts/self-check.sh"
+bash "${CLAUDE_SKILL_DIR}/scripts/self-check.sh"
 ```
 
 When it exits 0 with all ✅ marks, the skill can continue with step 1 (resolving the PR number and pulling the comment set).

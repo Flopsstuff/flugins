@@ -180,6 +180,28 @@ Or add as local marketplace:
 - Use `$ARGUMENTS` placeholder to capture user input
 - Document expected argument format in command content
 
+**Referencing bundled scripts & supporting files from a skill:**
+
+Use `${CLAUDE_SKILL_DIR}` — it's the officially documented variable that resolves to the directory containing the skill's `SKILL.md` file. For plugin skills it points to `plugins/<plugin>/skills/<skill>/`, **not** the plugin root. Place scripts, reference docs, templates, etc. **inside the skill directory** (e.g. `skills/<skill>/scripts/*.sh`, `skills/<skill>/docs/*.md`) and invoke them as:
+
+```bash
+bash "${CLAUDE_SKILL_DIR}/scripts/self-check.sh"
+```
+
+Do **not** rely on `${CLAUDE_PLUGIN_ROOT}` inside skill or command markdown — that variable is documented but not reliably expanded by Claude Code's Bash tool when a skill/command executes shell snippets (see [anthropics/claude-code#9354](https://github.com/anthropics/claude-code/issues/9354) — long-open bug, has regressed multiple times). It *does* work inside JSON configs like `hooks/hooks.json`, so it's fine there. For everything that lives in `SKILL.md` / `commands/*.md`, prefer `${CLAUDE_SKILL_DIR}` and keep all referenced files inside the skill.
+
+Canonical skill layout (from the official docs):
+
+```
+skills/<skill-name>/
+├── SKILL.md           # required
+├── scripts/           # executable helpers, invoked via ${CLAUDE_SKILL_DIR}/scripts/...
+├── docs/              # long-form reference material (loaded on demand, not into every session)
+└── templates/         # anything Claude fills in
+```
+
+Reference: https://code.claude.com/docs/en/skills
+
 ## Key Concepts
 
 ### Skills vs Commands

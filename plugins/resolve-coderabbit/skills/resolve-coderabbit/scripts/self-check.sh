@@ -13,7 +13,7 @@
 #   1  one or more dependencies missing or misconfigured
 #
 # Usage (from the skill):
-#   bash "${CLAUDE_PLUGIN_ROOT}/scripts/self-check.sh"
+#   bash "${CLAUDE_SKILL_DIR}/scripts/self-check.sh"
 
 set -u
 

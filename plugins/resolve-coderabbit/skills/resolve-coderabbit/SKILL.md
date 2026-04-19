@@ -22,7 +22,7 @@ Also: replies reference commit SHAs, so commits must be pushed before the reply 
 Before touching the PR — before any `gh api` call, any Task list, any file read — run the bundled self-check:
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/scripts/self-check.sh"
+bash "${CLAUDE_SKILL_DIR}/scripts/self-check.sh"
 ```
 
 It verifies `git`, `gh`, `jq`, `gh auth status`, and that the current directory is inside a git working tree, printing a ✅/❌ report with short tags (`gh`, `gh-auth`, `jq`, `git`, `git-repo`).
@@ -31,7 +31,7 @@ It verifies `git`, `gh`, `jq`, `gh auth status`, and that the current directory 
 
 **If it exits non-zero** — do **not** proceed with the PR loop. Instead:
 
-1. Read `${CLAUDE_PLUGIN_ROOT}/docs/setup-dependencies.md`. Each section is keyed to the tags the self-check prints, so map each ❌ to the matching section.
+1. Read `${CLAUDE_SKILL_DIR}/docs/setup-dependencies.md`. Each section is keyed to the tags the self-check prints, so map each ❌ to the matching section.
 2. Walk the user through fixing each failing item — present the relevant section, confirm the user's OS/package manager if the choice matters, and wait for them to run the install/auth step.
 3. Re-run the self-check. Repeat until it exits 0.
 4. Only then move to step 1. Never attempt to "work around" a missing dependency — the skill depends on `gh` + `jq` for every API call and there is no fallback path.
