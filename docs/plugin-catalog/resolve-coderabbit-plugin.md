@@ -44,11 +44,9 @@ The skill's first step is an automated dependency self-check (`skills/resolve-co
 
 Mention CodeRabbit PR comments in natural language (e.g. *"resolve the CodeRabbit comments on PR #42"*, *"address the bot review"*) and the skill activates automatically to walk through every unresolved CodeRabbit inline comment on the PR. For each thread it extracts the bot's claim, verifies it against the current code, and asks you to pick FIX / REJECT / SKIP — applying fixes as one commit per comment with a full unit-test gate, then batching the push, SHA-referenced replies, and thread resolves into a single final step. You can also trigger the same flow explicitly via `/resolve-coderabbit:resolve-coderabbit [pr_number]` from the `/` menu (omit the number to use the PR attached to the current branch).
 
-The skill is self-configuring: on first run it executes a bundled dependency self-check (`git`, `gh`, `gh auth`, `jq`, working tree) and, if anything is missing or misconfigured, walks you through the exact install/auth steps for your OS before touching the PR — so setup is a guided conversation rather than a manual checklist.
-
 ### Configuration
 
-No plugin-specific configuration knobs. The skill requires `git`, `gh`, `jq`, and a valid `gh auth` session — see [Requirements](#requirements) above. The bundled `scripts/self-check.sh` runs as step 0 and verifies everything before the comment loop touches anything.
+No plugin-specific configuration knobs — the skill is self-configuring. On first run it executes a bundled dependency self-check (`scripts/self-check.sh`) that verifies `git`, `gh`, `jq`, a valid `gh auth` session, and that you're inside a git working tree. If anything is missing or misconfigured, the skill pauses and walks you through the exact install/auth steps for your OS (from `docs/setup-dependencies.md`) before touching the PR — so setup is a guided conversation rather than a manual checklist. See [Requirements](#requirements) above for the underlying tool list.
 
 ---
 
