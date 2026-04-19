@@ -3,6 +3,13 @@ name: resolve-coderabbit
 description: Walk through unresolved CodeRabbit inline review comments on a GitHub PR one by one — verify each claim against the current code, fix/reject with the user's approval, commit locally, then validate + push + reply + resolve everything in one batched final step. Use this skill whenever the user asks to resolve CodeRabbit comments, address PR review from the CodeRabbit bot, go through inline suggestions, handle the bot review, or anything similar — even when they phrase it as "walk through the comments", "resolve review", "fix the bot's suggestions", or just name-drop CodeRabbit alongside a PR number.
 disable-model-invocation: false
 user-invocable: true
+allowed-tools: >-
+  Read Edit AskUserQuestion TaskCreate
+  Bash(bash ${CLAUDE_SKILL_DIR}/scripts/*)
+  Bash(gh pr view:*) Bash(gh pr diff:*)
+  Bash(gh api graphql*) Bash(gh api repos/*)
+  Bash(git log:*) Bash(git status:*) Bash(git diff:*)
+  Bash(git add:*) Bash(git commit:*)
 ---
 
 Resolve unresolved **CodeRabbit** inline review comments on a GitHub PR. Loop through each thread, verify the bot's claim against the current code with the user, apply a fix (with a full unit-test gate) or reject with justification, and commit locally. After the loop, run any needed E2E, ask the user to confirm, then push once and batch the replies + thread-resolves against the now-published SHAs.

@@ -6,7 +6,7 @@
 
 **Author:** Flop (flopspm@gmail.com)
 
-**Version:** 1.1.0
+**Version:** 1.1.1
 
 **Keywords:** documentation, sync, git, automation
 

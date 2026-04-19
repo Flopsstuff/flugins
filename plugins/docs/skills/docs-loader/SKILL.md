@@ -3,6 +3,7 @@ name: docs-loader
 description: Load project documentation before code tasks (features, refactoring, bugs, architecture) to align with project patterns and conventions. Searches docs/, documentation/, .docs/ folders and loads relevant files into context.
 disable-model-invocation: false
 user-invocable: true
+allowed-tools: Task
 ---
 
 # Documentation Loader
