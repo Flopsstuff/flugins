@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Collection of Claude Code plugins by Flopsstuff",
-    "version": "0.0.1"
+    "version": "0.1.0"
   },
   "plugins": [
     {
@@ -14,7 +14,7 @@
       "description": "Generate and keep documentation in sync with your codebase",
       "author": {
         "name": "Flop",
-        "email": "flop@hackerspace.by"
+        "email": "flopspm@gmail.com"
       },
       "keywords": ["documentation", "sync", "git", "automation"]
     },
@@ -24,9 +24,19 @@
       "description": "Smart git workflow commands with intelligent conflict resolution",
       "author": {
         "name": "Flop",
-        "email": "flop@hackerspace.by"
+        "email": "flopspm@gmail.com"
       },
       "keywords": ["git", "version-control", "merge", "rebase", "worktree", "squash", "workflow"]
+    },
+    {
+      "name": "resolve-coderabbit",
+      "source": "./plugins/resolve-coderabbit",
+      "description": "Walk through CodeRabbit inline PR comments, verify each against the current code, and batch-resolve with commits and replies",
+      "author": {
+        "name": "Flop",
+        "email": "flopspm@gmail.com"
+      },
+      "keywords": ["review", "coderabbit", "github", "pr", "pull-request", "bot-comments"]
     }
   ]
 }
