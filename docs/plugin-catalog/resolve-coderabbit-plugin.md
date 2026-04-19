@@ -100,7 +100,7 @@ Replies to inline comments reference commit SHAs. If replies were posted before 
 
 Each FIX commit uses the project's own convention (Conventional Commits or gitmoji — the skill checks recent `git log`) with a body explaining the CodeRabbit feedback:
 
-```
+```text
 fix(scope): short imperative summary
 
 Per CodeRabbit PR review on #42: one or two sentences on what and why,
