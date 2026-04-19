@@ -1,6 +1,6 @@
 ---
 name: resolve-coderabbit
-description: Walk through unresolved CodeRabbit inline review comments on a GitHub PR one by one — verify each claim against the current code, fix/reject with the user's approval, commit locally, then validate + push + reply + resolve everything in one batched final step. Use this skill whenever the user asks to resolve CodeRabbit comments, address PR review from the CodeRabbit bot, go through inline suggestions, handle the bot review, or anything similar — even when they phrase it as "пройдись по комментам", "resolve review", "fix the bot's suggestions", or just name-drop CodeRabbit alongside a PR number.
+description: Walk through unresolved CodeRabbit inline review comments on a GitHub PR one by one — verify each claim against the current code, fix/reject with the user's approval, commit locally, then validate + push + reply + resolve everything in one batched final step. Use this skill whenever the user asks to resolve CodeRabbit comments, address PR review from the CodeRabbit bot, go through inline suggestions, handle the bot review, or anything similar — even when they phrase it as "walk through the comments", "resolve review", "fix the bot's suggestions", or just name-drop CodeRabbit alongside a PR number.
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -16,6 +16,27 @@ CodeRabbit has a hard-earned habit of attaching a `🤖 Prompt for AI Agents` bl
 Also: replies reference commit SHAs, so commits must be pushed before the reply is posted. One commit per comment keeps each reply's SHA meaningful and the PR history legible.
 
 ## Steps
+
+### 0. Dependency self-check (run this first, always)
+
+Before touching the PR — before any `gh api` call, any Task list, any file read — run the bundled self-check:
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/self-check.sh"
+```
+
+It verifies `git`, `gh`, `jq`, `gh auth status`, and that the current directory is inside a git working tree, printing a ✅/❌ report with short tags (`gh`, `gh-auth`, `jq`, `git`, `git-repo`).
+
+**If the script exits 0 with all ✅** — continue to step 1.
+
+**If it exits non-zero** — do **not** proceed with the PR loop. Instead:
+
+1. Read `${CLAUDE_PLUGIN_ROOT}/docs/setup-dependencies.md`. Each section is keyed to the tags the self-check prints, so map each ❌ to the matching section.
+2. Walk the user through fixing each failing item — present the relevant section, confirm the user's OS/package manager if the choice matters, and wait for them to run the install/auth step.
+3. Re-run the self-check. Repeat until it exits 0.
+4. Only then move to step 1. Never attempt to "work around" a missing dependency — the skill depends on `gh` + `jq` for every API call and there is no fallback path.
+
+This step is not optional and not skippable, even for "I just did this yesterday" scenarios — `gh auth` tokens can expire, `jq` can disappear after a system update, and a silent tool failure partway through the comment loop is far worse than a 200ms check at the start.
 
 ### 1. Resolve the PR number and pull the comment set
 

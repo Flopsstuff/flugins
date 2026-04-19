@@ -25,9 +25,13 @@ claude plugin install resolve-coderabbit@flugins
 ## Requirements
 
 - [`gh`](https://cli.github.com) CLI installed and authenticated against the repo's GitHub host
+- [`jq`](https://jqlang.github.io/jq/) installed (used to parse the GitHub API responses)
+- `git` installed and the current directory inside a git working tree
 - The PR must already be opened and the branch pushed (the skill pushes **new** commits, but the PR itself must exist)
 - CodeRabbit (`coderabbitai`) must have posted inline review comments on the PR
 - A clean working tree on the PR branch — uncommitted unrelated changes will collide with one-commit-per-comment
+
+The skill's first step is an automated dependency self-check (`scripts/self-check.sh`) that verifies the first three bullets and walks you through `docs/setup-dependencies.md` if anything is missing — so there's no guesswork about what to install.
 
 ## Features
 
@@ -51,13 +55,14 @@ The skill activates when you reference CodeRabbit or bot PR comments. Examples t
 - "resolve the CodeRabbit comments on PR #42"
 - "go through the bot's suggestions"
 - "address the PR review"
-- "пройдись по коментам"
+- "walk through the comments"
 - "fix the CodeRabbit nits"
 
 You can also invoke it explicitly via the Claude Code skill UI.
 
 ### Workflow
 
+0. **Dependency self-check.** Runs the bundled `scripts/self-check.sh` first, which verifies `git`, `gh`, `jq`, a valid `gh auth` session, and that the current directory is inside a git working tree. If anything fails, the skill stops and walks you through `docs/setup-dependencies.md` for your OS before continuing.
 1. **Resolve PR context.** Reads the PR number from arguments, or falls back to the PR attached to the current branch (`gh pr view --json number --jq .number`), or asks you.
 2. **Pull the comment set.**
    - REST (`/pulls/{n}/comments`) for comment bodies, file paths, lines.
