@@ -35,9 +35,17 @@ The skill's first step is an automated dependency self-check (`skills/resolve-co
 
 ## Features
 
+### Commands
+
+This plugin has no slash commands. The `resolve-coderabbit` skill is model-invoked when you reference CodeRabbit PR comments in natural language (e.g. *"resolve the CodeRabbit comments on PR #42"*, *"address the bot review"*), or explicitly via the `/` menu as `/resolve-coderabbit:resolve-coderabbit [pr_number]`.
+
 ### Skills
 
 - [Resolve CodeRabbit Comments](#resolve-coderabbit-comments) - Walk through unresolved CodeRabbit inline comments one by one, verify, fix or reject with user approval, then batch-push and resolve threads
+
+### Configuration
+
+No plugin-specific configuration knobs. The skill requires `git`, `gh`, `jq`, and a valid `gh auth` session — see [Requirements](#requirements) above. The bundled `scripts/self-check.sh` runs as step 0 and verifies everything before the comment loop touches anything.
 
 ---
 
