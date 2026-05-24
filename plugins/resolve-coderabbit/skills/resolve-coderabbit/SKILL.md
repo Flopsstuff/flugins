@@ -9,7 +9,7 @@ allowed-tools: >-
   Bash(gh pr view:*) Bash(gh pr diff:*)
   Bash(gh api graphql*) Bash(gh api repos/*)
   Bash(git log:*) Bash(git status:*) Bash(git diff:*)
-  Bash(git add:*) Bash(git commit:*)
+  Bash(git add:*) Bash(git commit:*) Bash(git push:*) Bash(git reset:*)
 ---
 
 Resolve unresolved **CodeRabbit** inline review comments on a GitHub PR. Loop through each thread, verify the bot's claim against the current code with the user, apply a fix (with a full unit-test gate) or reject with justification, and commit locally. After the loop, run any needed E2E, ask the user to confirm, then push once and batch the replies + thread-resolves against the now-published SHAs.
@@ -160,7 +160,7 @@ The loop *commits* every FIX locally, but defers `git push`, the reply, and the 
    Per CodeRabbit PR review on #<PR>: <one or two sentences on what
    and why, referencing the file/line that was off>.
 
-   Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+   Co-Authored-By: Claude Code <noreply@anthropic.com>
    ```
 
    `<type>` follows the project's convention (commonly `fix`, `feat`, `docs`, `test`, `chore`, `refactor` under Conventional Commits; some repos use gitmoji instead — check recent `git log` to match).
@@ -253,7 +253,7 @@ the resulting instance whenever the server returned a partial Problem
 Details shape. Always build a complete problem-details object with
 sensible fallbacks before instantiating the error.
 
-Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+Co-Authored-By: Claude Code <noreply@anthropic.com>
 ```
 
 **Good reply** (adopted partial, explains what was skipped):
