@@ -31,9 +31,9 @@ non-interactive installs, configure it in the Hermes runtime environment or in
 
 ## Workflow
 
-1. Use `tweet_explore` to discover the catalog route.
-2. Use `tweet_read` for read-only X/Twitter endpoints.
-3. Use `tweet_action` only after the user approves a write, private read,
+1. First, discover the catalog route with `tweet_explore`.
+2. Then, call `tweet_read` for read-only X/Twitter endpoints.
+3. Finally, call `tweet_action` only after the user approves a write, private read,
    monitor, webhook, extraction job, giveaway draw, or media operation.
 
 ## Good Fits

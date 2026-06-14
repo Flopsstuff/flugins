@@ -42,9 +42,9 @@ skill guidance and keep X/Twitter operations on the Hermes Tweet route.
 
 ## Safety
 
-- Use `tweet_explore` before any endpoint call.
-- Use `tweet_read` for read-only X/Twitter endpoints.
-- Use `tweet_action` only after explicit approval.
+- Begin with `tweet_explore` before any endpoint call.
+- Fetch data through `tweet_read` for read-only X/Twitter endpoints.
+- Invoke `tweet_action` only after explicit approval.
 - Keep `HERMES_TWEET_ENABLE_ACTIONS=false` unless actions are required.
 - Never paste credentials or secrets into chat.
 
