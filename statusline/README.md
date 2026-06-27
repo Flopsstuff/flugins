@@ -1,50 +1,52 @@
 # Statusline
 
-Кастомный statusline для Claude Code. Один bash-скрипт без зависимостей от плагинов.
+A custom statusline for Claude Code. A single bash script with no plugin dependencies.
 
-## Как выглядит
+## What it looks like
 
-```ansi
-[1mOpus 4.8[0m [33mhigh[0m  [[33m█████▎[0m[90m  [0m] [33m67%[0m  [1m📁 flugins[0m | 🌿 main | [33m#42 ●[0m
+```
+Opus 4.8 high  [█████▎  ] 67%  📁 flugins | 🌿 main | #42 ●
 ```
 
-Слева направо:
+In the live terminal each segment is colored (effort by level, the context bar
+by fill level, the PR/MR marker by review state). Left to right:
 
-| Сегмент | Что показывает |
-|---------|----------------|
-| `Opus 4.8` | Модель (`display_name`) |
-| `high` | Уровень reasoning effort — цвет зависит от уровня (`low`→зелёный, `medium`→cyan, `high`→жёлтый, `xhigh`→magenta, `max`→ярко-красный жирный) |
-| `[█████▎  ] 67%` | Заполнение контекстного окна. Бар из 1/8-блоков, цвет меняется: зелёный <30%, жёлтый 30–80%, красный >80% |
-| `📁 flugins` | Имя текущей рабочей папки |
-| `🌿 main` | Текущая git-ветка |
-| `#42 ●` | Номер и статус PR/MR. `#` для GitHub, `!` для GitLab. Статус: `●` open (жёлтый), `✓` approved (зелёный), `✗` changes requested (красный), `◌` draft (серый) |
+| Segment | What it shows |
+|---------|---------------|
+| `Opus 4.8` | Model (`display_name`) |
+| `high` | Reasoning effort level — colored by level (`low`→green, `medium`→cyan, `high`→yellow, `xhigh`→magenta, `max`→bright red bold) |
+| `[█████▎  ] 67%` | Context window usage. A bar of 1/8-blocks, color changes: green <30%, yellow 30–80%, red >80% |
+| `📁 flugins` | Current working directory name |
+| `🌿 main` | Current git branch |
+| `#42 ●` | PR/MR number and status. `#` for GitHub, `!` for GitLab. Status: `●` open (yellow), `✓` approved (green), `✗` changes requested (red), `◌` draft (gray) |
 
-Статус PR/MR резолвится через `gh`/`glab`, кэшируется и обновляется в фоне (stale-while-revalidate, TTL 90с), поэтому рендер statusline **никогда не блокируется** сетевыми запросами. Поддерживается fork-сценарий: PR ищется и в `upstream`-репозитории по ветке форка.
+The PR/MR status is resolved via `gh`/`glab`, cached, and refreshed in the
+background (stale-while-revalidate, 90s TTL), so the statusline render **never
+blocks** on network requests. A fork scenario is supported: the PR is also
+looked up in the `upstream` repository by the fork's branch.
 
-## Требования
+## Requirements
 
-- `jq` — обязательно (парсинг JSON от Claude Code)
-- `gh` (GitHub) и/или `glab` (GitLab) — опционально, только для сегмента PR/MR
+- `jq` — required (parses the JSON Claude Code feeds in)
+- `gh` (GitHub) and/or `glab` (GitLab) — optional, only for the PR/MR segment
 
-## Установка
+## Installation
 
-### Вариант 1 — через `/statusline`
+### Option 1 — via `/statusline` (one step)
 
-1. Скопируйте скрипт к себе:
-   ```bash
-   cp statusline/statusline-command.sh ~/.claude/statusline-command.sh
-   chmod +x ~/.claude/statusline-command.sh
-   ```
-2. В Claude Code выполните команду и попросите подключить готовый скрипт:
-   ```
-   /statusline use the script at ~/.claude/statusline-command.sh
-   ```
-   `/statusline` сам пропишет `statusLine` в `~/.claude/settings.json`.
+In Claude Code, run:
 
-### Вариант 2 — вручную
+```
+/statusline download https://raw.githubusercontent.com/Flopsstuff/flugins/main/statusline/statusline-command.sh to ~/.claude/statusline-command.sh, make it executable, and wire it up in settings.json
+```
 
-1. Скопируйте скрипт (как в шаге 1 выше).
-2. Добавьте в `~/.claude/settings.json`:
+The statusline agent fetches the script, sets the executable bit, and writes the
+`statusLine` entry into `~/.claude/settings.json` for you.
+
+### Option 2 — manual
+
+1. Copy the script (same as step 1 above).
+2. Add to `~/.claude/settings.json`:
    ```json
    {
      "statusLine": {
@@ -53,8 +55,10 @@
      }
    }
    ```
-3. Перезапустите Claude Code.
+3. Restart Claude Code.
 
-## Кастомизация
+## Customization
 
-Цвета (ANSI-палитра), пороги цвета контекст-бара (`30` / `80`), ширина бара (`width=8`) и TTL кэша PR (`90`) задаются прямо в `statusline-command.sh` — правьте под себя.
+Colors (ANSI palette), the context-bar color thresholds (`30` / `80`), the bar
+width (`width=8`), and the PR cache TTL (`90`) are all defined directly in
+`statusline-command.sh` — tweak them to taste.
