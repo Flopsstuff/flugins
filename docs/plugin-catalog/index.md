@@ -40,4 +40,4 @@ claude plugin update <plugin-name>@flugins
 
 More plugins are in development! Check the [Flugins repository](https://github.com/Flopsstuff/flugins) for updates.
 
-Interested in contributing? See the [Creating Plugins](../creating-plugins.md) guide.
+Interested in contributing? See the [Creating Plugins](../contribution/creating-plugins.md) guide.

@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Flugins** is a marketplace and collection of Claude Code plugins. This is a plugin development repository that:
 - Hosts multiple plugins in the `plugins/` directory
 - Maintains a plugin marketplace via `.claude-plugin/marketplace.json`
-- Uses MkDocs for documentation hosted on GitHub Pages
+- Uses VitePress for documentation hosted on GitHub Pages
 - Follows a specific plugin structure standard for Claude Code
 
 ## Repository Structure
@@ -23,11 +23,13 @@ flugins/
 │       ├── commands/           # Command definitions (markdown files)
 │       ├── skills/             # Agent skills (optional)
 │       └── agents/             # Custom agents (optional)
-├── docs/                       # MkDocs documentation source
+├── docs/                       # VitePress documentation source
+│   ├── .vitepress/
+│   │   └── config.mts         # VitePress configuration
 │   ├── index.md               # Documentation homepage
 │   ├── contribution/          # Development guides
 │   └── plugin-catalog/        # Plugin documentation
-└── mkdocs.yml                 # MkDocs configuration
+└── package.json               # VitePress devDependency + docs scripts
 ```
 
 ## Plugin Architecture
@@ -93,32 +95,36 @@ When adding a new plugin, update `.claude-plugin/marketplace.json`:
 
 ## Documentation System
 
-### MkDocs Structure
+### VitePress Structure
 
-Documentation uses MkDocs Material theme with the awesome-pages plugin:
-- `docs/index.md` — Main documentation homepage
+Documentation uses VitePress (default theme) with local search:
+- `docs/index.md` — Main documentation homepage (hero layout)
 - `docs/contribution/` — Plugin development guides
 - `docs/plugin-catalog/` — Individual plugin documentation pages
+- `docs/.vitepress/config.mts` — VitePress site configuration
 
 ### Documentation Commands
 
 Build and serve documentation locally:
 ```bash
 # Install dependencies
-pip install mkdocs-material mkdocs-awesome-pages-plugin
+npm install
 
-# Serve locally at http://127.0.0.1:8000
-mkdocs serve
+# Serve locally at http://localhost:5173/flugins/
+npm run docs:dev
 
-# Build static site to site/
-mkdocs build
+# Build static site to docs/.vitepress/dist/
+npm run docs:build
+
+# Preview the built site
+npm run docs:preview
 ```
 
 ### Auto-Deployment
 
 Documentation automatically deploys to GitHub Pages when:
 - Changes pushed to `main` branch
-- Files modified in `docs/**` or `mkdocs.yml`
+- Files modified in `docs/**`, `package.json`, `package-lock.json`, or `.github/workflows/docs.yml`
 
 See `.github/workflows/docs.yml` for deployment workflow.
 
