@@ -45,7 +45,7 @@ The statusline agent fetches the script, sets the executable bit, and writes the
 
 ### Option 2 — manual
 
-1. Copy the script (same as step 1 above).
+1. Copy the script statusline-command.sh
 2. Add to `~/.claude/settings.json`:
    ```json
    {
