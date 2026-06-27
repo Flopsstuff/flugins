@@ -8,6 +8,10 @@ This catalog provides detailed documentation for all available plugins in the Fl
 - [Git Plugin](git-plugin.md) - Smart git workflow commands with intelligent conflict resolution
 - [Resolve CodeRabbit Plugin](resolve-coderabbit-plugin.md) - Walk through CodeRabbit inline PR comments, verify, fix, and batch-resolve
 
+## Extras
+
+- [Statusline](statusline.md) - A custom Claude Code statusline (model, effort, context bar, branch, PR/MR status) as a standalone script
+
 ## Installation Reference
 
 ### Installing the Flugins Marketplace
