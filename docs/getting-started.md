@@ -112,9 +112,9 @@ If a plugin isn't functioning as expected:
 
 ## Next Steps
 
-- Learn how to [create your own plugins](creating-plugins.md)
-- Explore the [API Reference](api-reference.md)
-- [Contribute](contributing.md) to the Flugins collection
+- Learn how to [create your own plugins](contribution/creating-plugins.md)
+- Explore the [API Reference](contribution/api-reference.md)
+- [Contribute](contribution/contributing.md) to the Flugins collection
 
 ## Getting Help
 

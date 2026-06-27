@@ -18,8 +18,9 @@ Thumbs.db
 .env
 .env.local
 
-# MkDocs
-site/
+# VitePress
+docs/.vitepress/dist/
+docs/.vitepress/cache/
 
 # ignore gitpmoji directory
 .gitpmoji

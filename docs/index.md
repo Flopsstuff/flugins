@@ -1,14 +1,35 @@
-# Home
+---
+layout: home
 
-Flugins is a curated collection of Claude Code plugins developed and maintained by Flopsstuff.
-It serves as a hub for extending Claude Code's capabilities with custom tools, integrations, and functionality.
+hero:
+  name: Flugins
+  text: Claude Code plugins, curated.
+  tagline: A hub of custom tools, integrations, and workflows that extend Claude Code — installable from one marketplace.
+  actions:
+    - theme: brand
+      text: Getting Started
+      link: /getting-started
+    - theme: alt
+      text: Plugin Catalog
+      link: /plugin-catalog/
+    - theme: alt
+      text: View on GitHub
+      link: https://github.com/Flopsstuff/flugins
 
-## Goals
-
-- **Extend Claude Code**: Provide additional tools and capabilities beyond the built-in features
-- **Community-Driven**: Create a collection of useful plugins based on community needs
-- **Easy Distribution**: Offer a simple marketplace-based installation system
-- **Quality Assurance**: Maintain high-quality, well-tested plugins
+features:
+  - title: Extend Claude Code
+    details: Add tools and capabilities beyond the built-in features — git workflows, documentation generation, PR review automation, and more.
+    link: /plugin-catalog/
+    linkText: Browse plugins
+  - title: Easy distribution
+    details: One marketplace command adds every plugin. Install, update, and manage plugins with a simple, consistent CLI flow.
+    link: /getting-started
+    linkText: Install in seconds
+  - title: Community-driven
+    details: A growing, open collection built around real workflows. Quality-focused and well-documented, with contributions welcome.
+    link: /contribution/
+    linkText: Start contributing
+---
 
 ## Quick Start
 
@@ -23,25 +44,15 @@ claude plugin install <plugin-name>@flugins
 claude plugin update <plugin-name>@flugins
 ```
 
-## Documentation
+## Goals
 
-- [Getting Started](getting-started.md) — Installation and setup
-- [Plugin Catalog](plugin-catalog/index.md) — Available plugins
-- [Contribution](contribution/index.md) — Creating plugins, API reference, contributing guidelines
-
-## Architecture
-
-```
-flugins/
-├── .claude-plugin/
-│   └── marketplace.json    # Marketplace metadata
-├── plugins/                 # Plugin implementations
-├── docs/                    # Documentation
-└── README.md
-```
+- **Extend Claude Code** — provide additional tools and capabilities beyond the built-in features.
+- **Community-driven** — create a collection of useful plugins based on community needs.
+- **Easy distribution** — offer a simple marketplace-based installation system.
+- **Quality assurance** — maintain high-quality, well-tested plugins.
 
 ## Links
 
 - [GitHub Repository](https://github.com/Flopsstuff/flugins)
 - [Issue Tracker](https://github.com/Flopsstuff/flugins/issues)
-- [License](../LICENSE) (MIT)
+- [License](https://github.com/Flopsstuff/flugins/blob/main/LICENSE) (MIT)
