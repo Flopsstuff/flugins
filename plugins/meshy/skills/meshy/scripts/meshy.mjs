@@ -694,23 +694,38 @@ async function downloadAssets(base, task, sel, ctx) {
   const outDir = sel.outDir;
   await ensureDir(outDir);
   const written = [], skipped = [], errors = [];
-  let refreshed = false;
+  // Signed asset URLs typically expire together, so on the first 401/403/410 we
+  // re-fetch the task once and reuse the fresh URLs for EVERY remaining asset
+  // (not just the one that failed). null until the first expiry triggers a refresh.
+  let refreshedUrls = null;
 
-  for (const it of collectUrls(task, sel)) {
+  for (const original of collectUrls(task, sel)) {
+    const it = refreshedUrls?.get(original.name) ?? original;
     if (!it.url) { skipped.push({ asset: it.asset, format: it.format, reason: it.skip || 'not available' }); continue; }
     const dest = path.join(outDir, sanitizeName(it.name));
     try {
       const { bytes } = await downloadOne(it.url, dest, ctx);
       written.push({ asset: it.asset, format: it.format, path: dest, bytes });
     } catch (e) {
-      if ([401, 403, 410].includes(e.status) && !refreshed) {
-        refreshed = true;
-        logErr('a download URL expired; re-fetching task for fresh URLs…');
-        try {
-          const fresh = await getTask(base, task.id, ctx);
-          const match = collectUrls(fresh, sel).find((x) => x.name === it.name && x.url);
-          if (match) { const { bytes } = await downloadOne(match.url, dest, ctx); written.push({ asset: it.asset, format: it.format, path: dest, bytes }); continue; }
-        } catch { /* fall through to error */ }
+      if ([401, 403, 410].includes(e.status)) {
+        if (!refreshedUrls) {
+          logErr('a download URL expired; re-fetching task for fresh URLs…');
+          try {
+            const fresh = await getTask(base, task.id, ctx);
+            refreshedUrls = new Map(collectUrls(fresh, sel).filter((x) => x.url).map((x) => [x.name, x]));
+          } catch { /* fall through to error */ }
+        }
+        const match = refreshedUrls?.get(original.name);
+        if (match?.url) {
+          try {
+            const { bytes } = await downloadOne(match.url, dest, ctx);
+            written.push({ asset: it.asset, format: it.format, path: dest, bytes });
+            continue;
+          } catch (e2) {
+            errors.push({ asset: it.asset, format: it.format, reason: `expired, refetch failed (${e2.status || e2.message})` });
+            continue;
+          }
+        }
         errors.push({ asset: it.asset, format: it.format, reason: `expired (${e.status})` });
       } else {
         errors.push({ asset: it.asset, format: it.format, reason: e.message || String(e) });
