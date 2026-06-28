@@ -758,7 +758,7 @@ function progressLogger(label) {
   };
 }
 
-async function cmdGenerate(command, opts, ctx, startedAt) {
+async function cmdGenerate(command, opts, ctx, startedAt, state) {
   const alias = COMMAND_ALIASES[command];
   const type = alias ? alias.type : command;
   const presets = alias ? alias.presets : undefined;
@@ -770,6 +770,7 @@ async function cmdGenerate(command, opts, ctx, startedAt) {
   TYPES[type].validate?.(body);
 
   const id = await createTask(base, body, ctx);
+  if (state) state.taskId = id; // so SIGINT can emit a resumable task id
   logErr(`created ${type} task ${id}`);
 
   if (opts.has('no_wait')) {
@@ -968,10 +969,10 @@ async function main(argv) {
     installInterrupt();
 
     if (command === 'balance') return await cmdBalance(opts, ctx, startedAt);
-    if (command === 'status') return await cmdStatus(positionals, opts, ctx, startedAt);
+    if (command === 'status') { state.taskId = positionals[1] || null; return await cmdStatus(positionals, opts, ctx, startedAt); }
     if (command === 'list') return await cmdList(positionals, opts, ctx, startedAt);
-    if (command === 'download') return await cmdDownload(positionals, opts, ctx, startedAt);
-    if (GENERATE_COMMANDS.has(command)) return await cmdGenerate(command, opts, ctx, startedAt);
+    if (command === 'download') { state.taskId = positionals[1] || null; return await cmdDownload(positionals, opts, ctx, startedAt); }
+    if (GENERATE_COMMANDS.has(command)) return await cmdGenerate(command, opts, ctx, startedAt, state);
 
     throw usage(`unknown command "${command}"; run "help" for the list`);
   } catch (e) {
