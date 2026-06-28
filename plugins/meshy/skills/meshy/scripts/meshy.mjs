@@ -946,7 +946,10 @@ async function main(argv) {
     printHelp(argv.includes('--json'));
     return EXIT.OK;
   }
-  if (argv[0] === 'version' || argv.includes('--version')) { process.stdout.write(VERSION + '\n'); return EXIT.OK; }
+  if (argv[0] === 'version' || argv.includes('--version')) {
+    emit({ ok: true, command: 'version', version: VERSION, meta: { elapsed_ms: Date.now() - startedAt } }, argv.includes('--pretty'));
+    return EXIT.OK;
+  }
 
   let parsed;
   try { parsed = parseArgs(argv); } catch (e) { return emitError(e, null, argv.includes('--pretty'), startedAt); }
