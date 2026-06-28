@@ -8,6 +8,7 @@ This catalog provides detailed documentation for all available plugins in the Fl
 - [Git Plugin](git-plugin.md) - Smart git workflow commands with intelligent conflict resolution
 - [KSeF Plugin](ksef-plugin.md) - Send and receive KSeF (Polish e-invoice system) invoices via the ksef CLI, with guided onboarding for regular users
 - [Resolve CodeRabbit Plugin](resolve-coderabbit-plugin.md) - Walk through CodeRabbit inline PR comments, verify, fix, and batch-resolve
+- [X Twitter Scraper Plugin](x-twitter-scraper-plugin.md) - Use Xquik for X data, exports, monitors, webhooks, and confirmation-gated publishing
 
 ## Extras
 
