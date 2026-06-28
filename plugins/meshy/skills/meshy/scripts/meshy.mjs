@@ -521,8 +521,12 @@ async function request(method, p, { body, query, ctx, auth = true } = {}) {
       throw new ApiError(res.status, message, { code: data?.code ?? null, docUrl: data?.doc_url ?? null, body: data });
     } catch (e) {
       if (e instanceof ApiError) throw e;
+      // Only retry network errors/timeouts for idempotent methods. A POST that
+      // reached the server but lost its response would otherwise be re-sent,
+      // creating a second task and charging credits twice on the paid API.
+      const idempotent = method === 'GET' || method === 'HEAD';
       const transient = e.name === 'AbortError' || ['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'EAI_AGAIN', 'ECONNREFUSED'].includes(e.code);
-      if (transient && attempt < ctx.maxRetries) {
+      if (idempotent && transient && attempt < ctx.maxRetries) {
         attempt++;
         logErr(`network error (${e.code || e.name}), retry ${attempt}/${ctx.maxRetries}…`);
         await sleep(backoffDelay(attempt));
