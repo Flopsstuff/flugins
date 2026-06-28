@@ -37,6 +37,15 @@
         "email": "flopspm@gmail.com"
       },
       "keywords": ["review", "coderabbit", "github", "pr", "pull-request", "bot-comments"]
+    },
+    {
+      "name": "x-twitter-scraper",
+      "source": "./plugins/x-twitter-scraper",
+      "description": "Use Xquik REST API and MCP references for X data, exports, monitors, webhooks, and confirmation-gated publishing",
+      "author": {
+        "name": "Xquik"
+      },
+      "keywords": ["x", "twitter", "social-media", "api", "mcp", "automation"]
     }
   ]
 }

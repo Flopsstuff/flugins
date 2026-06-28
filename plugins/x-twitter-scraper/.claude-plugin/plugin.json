@@ -1,0 +1,10 @@
+{
+  "name": "x-twitter-scraper",
+  "version": "1.0.0",
+  "description": "Use Xquik REST API and MCP references for X data, exports, monitors, webhooks, and confirmation-gated publishing",
+  "homepage": "https://github.com/Xquik-dev/x-twitter-scraper",
+  "author": {
+    "name": "Xquik"
+  },
+  "keywords": ["x", "twitter", "social-media", "api", "mcp", "automation"]
+}
