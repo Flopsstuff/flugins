@@ -922,14 +922,20 @@ function printHelp(wantJson) {
 // ── Section 13: context + dispatch ─────────────────────────────────────────
 function buildContext(opts) {
   const apiKey = (opts.has('api_key') && lastOf(opts.get('api_key'))) || process.env.MESHY_AI_API_KEY || process.env.MESHY_API_KEY || '';
-  const num = (k, d) => (opts.has(k) ? Number(lastOf(opts.get(k))) : d);
+  const num = (k, d, min = 0) => {
+    if (!opts.has(k)) return d;
+    const n = Number(lastOf(opts.get(k)));
+    if (!Number.isFinite(n)) throw usage(`--${k.replace(/_/g, '-')} expects a number`);
+    if (n < min) throw usage(`--${k.replace(/_/g, '-')} must be >= ${min}`);
+    return n;
+  };
   return {
     apiKey,
     baseUrl: (opts.has('base_url') && lastOf(opts.get('base_url'))) || DEFAULTS.baseUrl,
-    requestTimeoutMs: num('request_timeout', DEFAULTS.requestTimeoutMs),
-    pollTimeoutMs: num('poll_timeout', DEFAULTS.pollTimeoutMs),
-    pollIntervalMs: num('interval', DEFAULTS.pollIntervalMs),
-    maxRetries: num('retries', DEFAULTS.maxRetries),
+    requestTimeoutMs: num('request_timeout', DEFAULTS.requestTimeoutMs, 1),
+    pollTimeoutMs: num('poll_timeout', DEFAULTS.pollTimeoutMs, 1),
+    pollIntervalMs: num('interval', DEFAULTS.pollIntervalMs, 1),
+    maxRetries: num('retries', DEFAULTS.maxRetries, 0),
   };
 }
 
