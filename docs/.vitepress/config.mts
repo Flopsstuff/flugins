@@ -31,7 +31,8 @@ export default defineConfig({
             { text: 'Overview', link: '/plugin-catalog/' },
             { text: 'Docs Plugin', link: '/plugin-catalog/docs-plugin' },
             { text: 'Git Plugin', link: '/plugin-catalog/git-plugin' },
-            { text: 'Resolve CodeRabbit Plugin', link: '/plugin-catalog/resolve-coderabbit-plugin' }
+            { text: 'Resolve CodeRabbit Plugin', link: '/plugin-catalog/resolve-coderabbit-plugin' },
+            { text: 'Meshy Plugin', link: '/plugin-catalog/meshy-plugin' }
           ]
         }
       ],

@@ -37,6 +37,16 @@
         "email": "flopspm@gmail.com"
       },
       "keywords": ["review", "coderabbit", "github", "pr", "pull-request", "bot-comments"]
+    },
+    {
+      "name": "meshy",
+      "source": "./plugins/meshy",
+      "description": "Generate 3D models, textures, rigs and animations from text or images via the Meshy AI API",
+      "author": {
+        "name": "Flop",
+        "email": "flopspm@gmail.com"
+      },
+      "keywords": ["meshy", "3d", "ai", "text-to-3d", "image-to-3d", "generative", "model-generation"]
     }
   ]
 }

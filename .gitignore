@@ -45,3 +45,6 @@ dev-debug.log
 # Task files
 # tasks.json
 # tasks/ 
+
+# Local Meshy plugin test artifacts
+.tmp-meshy-test/
