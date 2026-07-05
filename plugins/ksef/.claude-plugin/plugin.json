@@ -1,0 +1,11 @@
+{
+  "name": "ksef",
+  "version": "0.1.0",
+  "description": "Send and receive KSeF (Polish National e-Invoice System) invoices via the ksef CLI, with guided onboarding: install from npm, token setup, login",
+  "homepage": "https://github.com/Flopsstuff/flugins",
+  "author": {
+    "name": "Flop",
+    "email": "flopspm@gmail.com"
+  },
+  "keywords": ["ksef", "e-invoice", "faktura", "poland", "invoice", "cli", "fa3", "upo"]
+}
