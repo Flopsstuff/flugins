@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+# Git worktrees created by /git:worktree-start
+.worktrees/
+
 # OS files
 .DS_Store
 Thumbs.db
