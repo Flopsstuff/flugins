@@ -6,7 +6,7 @@
 
 **Author:** Flop (flopspm@gmail.com)
 
-**Version:** 1.1.1
+**Version:** 1.2.0
 
 **Keywords:** documentation, sync, git, automation
 
@@ -105,28 +105,35 @@ yes
 
 ## Sync Documentation
 
-**Command:** `/docs:sync-docs [number_of_commits]`
+**Command:** `/docs:sync-docs [days | N commits]`
 
-Analyzes recent git commits and updates documentation to reflect code changes.
+Analyzes recent git changes and updates documentation to reflect code changes. The lookback window is measured in **days by default**; commit-count mode is opt-in via the explicit `commits` keyword.
 
 ### Usage
 
 ```bash
-# Analyze last 5 commits (default)
+# Analyze the last 1 day (default)
 /docs:sync-docs
 
-# Analyze specific number of commits
-/docs:sync-docs 10
-/docs:sync-docs 20
+# Analyze a specific number of days (bare number = days)
+/docs:sync-docs 3
+/docs:sync-docs 7
+
+# Analyze a specific number of commits (explicit `commits` keyword)
+/docs:sync-docs 10 commits
+/docs:sync-docs 1 commit
 ```
 
 ### Parameters
 
-- `number_of_commits` (optional): Number of recent commits to analyze. Default: 5
+- `days` (optional, default): A bare number is interpreted as a number of days to look back. Default: **1 day** when no argument is given.
+- `N commits` (optional): A number followed by the `commits` (or `commit`) keyword switches to commit-count mode and analyzes exactly that many commits.
+
+If the resolved window contains no commits (e.g., an empty time range in days mode, or an invalid window), the command reports `"no commits in the last N days, nothing to sync"` and makes no changes.
 
 ### What it does
 
-1. Extracts the specified number of recent commits from git history
+1. Parses the argument to resolve the lookback window — days by default, or a commit count when the `commits` keyword is used
 2. Analyzes commit messages and full diffs to understand changes
 3. Reads the current state of all modified files
 4. Identifies the documentation folder automatically
@@ -148,12 +155,12 @@ git commit -m "Add authentication middleware"
 git commit -m "Update API endpoints"
 git commit -m "Refactor database connection"
 
-# Sync documentation with the last 3 commits
+# Sync documentation with the last 3 days of changes
 /docs:sync-docs 3
 
 # Claude analyzes changes and updates relevant docs
 # Example output:
-# "Updated documentation based on 3 recent commits:
+# "Updated documentation based on commits from the last 3 days:
 #  - api-reference.md: Added new /auth endpoints
 #  - architecture.md: Updated authentication flow diagram
 #  - getting-started.md: Added authentication setup steps"
@@ -162,7 +169,7 @@ git commit -m "Refactor database connection"
 ### Best Practices
 
 - Run after completing a feature or significant change
-- Use higher commit counts (10-20) for major refactors
+- Use a wider window (e.g. `7` days, or `20 commits`) for major refactors
 - Review the changes to ensure accuracy
 - Combine with regular code reviews
 - Set up as a pre-release checklist item
@@ -197,13 +204,13 @@ The sync command thoroughly checks:
 
 1. **Initial Setup:** Use `/docs:generate-docs` to create documentation structure
 2. **Continuous Sync:** Use `/docs:sync-docs` regularly during development
-3. **Pre-Release:** Run `/docs:sync-docs 20` before releases to catch all changes
+3. **Pre-Release:** Run a wider window (e.g. `/docs:sync-docs 7` or `/docs:sync-docs 50 commits`) before releases to catch all changes
 4. **After Merges:** Sync after merging feature branches to update docs
 
 ### Performance Optimization
 
-- Use lower commit counts (3-5) for quick daily syncs
-- Use higher commit counts (10-20) for comprehensive pre-release checks
+- Use a short window (the default `1` day, or `3`) for quick daily syncs
+- Use a wider window (e.g. `7` days, or `20-50 commits`) for comprehensive pre-release checks
 - Run generate-docs once, then rely on sync-docs for updates
 
 ### Integration Ideas
