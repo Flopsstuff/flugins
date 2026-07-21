@@ -6,19 +6,23 @@ disable-model-invocation: false
 
 # Sync Documentation with Recent Changes
 
-Usage: `/docs:sync-docs [number]` or `/docs:sync-docs [number]commits`
+Usage: `/docs:sync-docs [N]` (days) or `/docs:sync-docs [N]commits` (commit count)
 
 Analyze recent changes and update documentation to match current codebase:
 
 1. Parse the argument from `$ARGUMENTS`:
    - If no argument is provided → default to **1 day** (look back 1 day)
    - If the argument is a plain number (e.g., `/docs:sync-docs 3`) → treat it as **days** (look back 3 days)
-   - If the argument ends with `commits` or `commit` (e.g., `/docs:sync-docs 10commits`) → treat it as a **commit count** (analyze 10 commits)
+   - If the argument ends with `commits` or `commit`, optionally separated by a space (e.g., `10commits` or `10 commits`) → treat the leading number as a **commit count** (analyze that many commits)
    - Examples:
      - `/docs:sync-docs` → 1 day
      - `/docs:sync-docs 7` → 7 days
-     - `/docs:sync-docs 10commits` → 10 commits
+     - `/docs:sync-docs 10commits` (or `10 commits`) → 10 commits
      - `/docs:sync-docs 1commit` → 1 commit
+   - **Validate the argument and STOP before running any `git` command if it is invalid.** The numeric part must be a positive integer (≥ 1). Reject the argument — and ask the user to retry — when it is:
+     - zero or negative (e.g., `0`, `-3`, `0commits`)
+     - non-numeric, fractional, or otherwise malformed (e.g., `abc`, `3.5`, `5weeks`, or any suffix other than `commit`/`commits`)
+   - On rejection, explain the accepted formats: a positive number of **days** (e.g., `7`), or a positive **commit count** suffixed with `commit`/`commits` (e.g., `10commits`).
 
 2. Build the git log command based on the parsed argument:
    - **Days mode**: `git log --since="N days ago" -p` to get all commits in the time window
