@@ -6,7 +6,7 @@
 
 **Author:** Flop (flopspm@gmail.com)
 
-**Version:** 1.1.0
+**Version:** 1.2.0
 
 **Keywords:** git, version-control, merge, rebase, worktree, squash, workflow
 
@@ -30,7 +30,7 @@ claude plugin install git@flugins
 - [Squash Commits](#squash-commits) - Consolidate commits into logical groups
 - [Upstream Merge](#upstream-merge) - Merge from upstream with automatic conflict resolution
 - [Upstream Rebase](#upstream-rebase) - Rebase onto upstream branch with automatic conflict resolution
-- [Worktree Start](#worktree-start) - Create a new branch with a worktree in a sibling directory
+- [Worktree Start](#worktree-start) - Create a new branch with a worktree in `.worktrees/` inside the repo
 - [Worktree Done](#worktree-done) - Finalize worktree — squash, push, and clean up
 - [Worktree Kill](#worktree-kill) - Destroy worktree and delete branch without saving
 
@@ -467,7 +467,7 @@ git checkout feature/api-improvements
 
 **Command:** `/git:worktree-start [branch-name]`
 
-Creates a new branch and a git worktree for it in a sibling directory. The directory is named after the current repo with a branch suffix, allowing you to work on multiple branches simultaneously without stashing or switching.
+Creates a new branch and a git worktree for it in `.worktrees/{branch}` inside the main repository directory, allowing you to work on multiple branches simultaneously without stashing or switching. The `.worktrees/` folder is automatically added to `.git/info/exclude`, so it never shows up in `git status` and never creates a diff in the repository.
 
 ### Usage
 
@@ -486,8 +486,8 @@ Creates a new branch and a git worktree for it in a sibling directory. The direc
 ### What it does
 
 1. **Repository detection:**
-   - Identifies the repo root directory and its parent
-   - Determines the repo directory name (e.g., `my-project`)
+   - Identifies the main repository root via `git rev-parse --git-common-dir`
+   - Works correctly even when run from inside another worktree (no nested `.worktrees`)
 
 2. **Branch setup:**
    - Uses provided branch name or asks the user
@@ -495,14 +495,18 @@ Creates a new branch and a git worktree for it in a sibling directory. The direc
 
 3. **Directory creation:**
    - Sanitizes branch name for directory use (`/` → `-`)
-   - Computes target path: `PARENT/REPO-BRANCH` (e.g., `../my-project-feature-auth`)
+   - Computes target path: `REPO_ROOT/.worktrees/BRANCH` (e.g., `.worktrees/feature-auth`)
    - Checks for directory conflicts
 
-4. **Worktree creation:**
+4. **Git ignore setup:**
+   - Ensures `.worktrees/` is ignored via `.git/info/exclude` (local-only, never committed)
+   - Skipped if the repo's `.gitignore` already covers it
+
+5. **Worktree creation:**
    - Creates the worktree with a new branch: `git worktree add -b BRANCH PATH`
    - Or attaches to an existing branch: `git worktree add PATH BRANCH`
 
-5. **Switch to new worktree:**
+6. **Switch to new worktree:**
    - Changes into the new directory
    - Shows status and confirms setup
 
@@ -514,7 +518,7 @@ Creates a new branch and a git worktree for it in a sibling directory. The direc
 
 # Claude creates:
 # - Branch: feature/notifications
-# - Worktree: /projects/my-app-feature-notifications
+# - Worktree: /projects/my-app/.worktrees/feature-notifications
 # - Switches to the new directory
 
 # Now you can work on notifications without affecting main
@@ -528,7 +532,7 @@ Creates a new branch and a git worktree for it in a sibling directory. The direc
 git worktree list
 
 # Remove a worktree when done
-git worktree remove ../my-app-feature-notifications
+git worktree remove .worktrees/feature-notifications
 
 # Prune stale worktree entries
 git worktree prune
@@ -540,6 +544,7 @@ git worktree prune
 - Useful for reviewing PRs while keeping your current work intact
 - Each worktree is independent — changes don't affect other worktrees
 - Remember to clean up worktrees when branches are merged
+- If IDE search shows duplicates from `.worktrees/`, exclude it once at user level: VS Code — `**/.worktrees` in `search.exclude`; JetBrains — Mark Directory as → Excluded
 
 ### When to Use
 
@@ -592,7 +597,7 @@ Finalizes work in the current worktree: squashes commits, pushes the branch, rem
 ### Example Workflow
 
 ```bash
-# You're in /projects/my-app-feature-auth worktree
+# You're in /projects/my-app/.worktrees/feature-auth worktree
 # Done with your work, all committed
 
 /git:worktree-done
@@ -613,7 +618,7 @@ Finalizes work in the current worktree: squashes commits, pushes the branch, rem
 
 # After push:
 # "Pushed feature/auth to origin.
-#  Removing worktree /projects/my-app-feature-auth...
+#  Removing worktree /projects/my-app/.worktrees/feature-auth...
 #  Switched back to /projects/my-app (main branch).
 #  Done!"
 ```
@@ -675,14 +680,14 @@ Destroys the current worktree and deletes its branch. No squash, no push — jus
 ### Example Workflow
 
 ```bash
-# You're in /projects/my-app-experiment-xyz worktree
+# You're in /projects/my-app/.worktrees/experiment-xyz worktree
 # The experiment didn't work out
 
 /git:worktree-kill
 
 # Claude confirms:
 # "This will permanently remove:
-#  - Worktree: /projects/my-app-experiment-xyz
+#  - Worktree: /projects/my-app/.worktrees/experiment-xyz
 #  - Branch: experiment/xyz
 #  All uncommitted and unpushed work will be lost.
 #  Proceed?"

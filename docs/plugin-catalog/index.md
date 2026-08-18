@@ -6,6 +6,7 @@ This catalog provides detailed documentation for all available plugins in the Fl
 
 - [Docs Plugin](docs-plugin.md) - Generate and keep documentation in sync with your codebase
 - [Git Plugin](git-plugin.md) - Smart git workflow commands with intelligent conflict resolution
+- [KSeF Plugin](ksef-plugin.md) - Send and receive KSeF (Polish e-invoice system) invoices via the ksef CLI, with guided onboarding for regular users
 - [Resolve CodeRabbit Plugin](resolve-coderabbit-plugin.md) - Walk through CodeRabbit inline PR comments, verify, fix, and batch-resolve
 - [Meshy Plugin](meshy-plugin.md) - Generate 3D models, textures, rigs and animations from text or images via the Meshy AI API
 
