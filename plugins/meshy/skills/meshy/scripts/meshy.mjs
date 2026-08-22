@@ -622,9 +622,11 @@ async function pollTask(base, id, ctx, onProgress) {
 // ── Section 11: download ───────────────────────────────────────────────────
 function extFromUrl(url, fallback) {
   try {
-    const clean = String(url).split('?')[0];
-    const ext = clean.split('.').pop();
-    return ext && ext.length <= 5 ? ext.toLowerCase() : fallback;
+    const base = new URL(String(url)).pathname.split('/').pop() || '';
+    const dot = base.lastIndexOf('.');
+    if (dot <= 0 || dot === base.length - 1) return fallback;
+    const ext = base.slice(dot + 1).toLowerCase();
+    return /^[a-z0-9]{1,5}$/.test(ext) ? ext : fallback;
   } catch { return fallback; }
 }
 function sanitizeName(s) {
