@@ -9,6 +9,9 @@ export default defineConfig({
   cleanUrls: true,
   lastUpdated: true,
 
+  // Engineering decision records share this tree but are not part of the catalog.
+  srcExclude: ['decisions/**'],
+
   head: [
     ['meta', { name: 'theme-color', content: '#7c3aed' }]
   ],
