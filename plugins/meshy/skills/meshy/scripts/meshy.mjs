@@ -374,6 +374,13 @@ function parseArgs(argv) {
 const lastOf = (v) => (Array.isArray(v) ? v[v.length - 1] : v);
 const splitList = (v) => (Array.isArray(v) ? v : [v]).flatMap((s) => String(s).split(',')).map((s) => s.trim()).filter(Boolean);
 
+// Booleans are documented as `--flag`, `--flag=false` and `--no-flag`, so the
+// parser stores a VALUE for them. Testing opts.has() alone would read
+// `--wait=false` as "wait" and `--textures=false` as "download textures".
+function boolOpt(opts, name, fallback = false) {
+  return opts.has(name) ? coerce(opts.get(name), { type: 'boolean' }, name) : fallback;
+}
+
 function coerce(value, spec, name) {
   const flag = '--' + name.replace(/_/g, '-');
   switch (spec.type) {
@@ -770,9 +777,10 @@ function downloadSelection(opts) {
   return {
     outDir: opts.has('out') ? lastOf(opts.get('out')) : null,
     formats: opts.has('formats') ? splitList(opts.get('formats')) : DEFAULTS.formats,
-    textures: opts.has('textures') || opts.has('all'),
-    thumbnail: opts.has('thumbnail') || opts.has('all'),
-    all: opts.has('all'),
+    // an explicit --textures=false / --no-thumbnail opts out even under --all
+    textures: opts.has('textures') ? boolOpt(opts, 'textures') : boolOpt(opts, 'all'),
+    thumbnail: opts.has('thumbnail') ? boolOpt(opts, 'thumbnail') : boolOpt(opts, 'all'),
+    all: boolOpt(opts, 'all'),
   };
 }
 
@@ -804,8 +812,8 @@ async function cmdGenerate(command, opts, ctx, startedAt, state) {
   if (state) state.taskId = id; // so SIGINT can emit a resumable task id
   logErr(`created ${type} task ${id}`);
 
-  if (opts.has('no_wait')) {
-    emit({ ok: true, command, type, task_id: id, status: 'PENDING', waited: false, meta: meta(ctx, startedAt) }, opts.has('pretty'));
+  if (boolOpt(opts, 'no_wait')) {
+    emit({ ok: true, command, type, task_id: id, status: 'PENDING', waited: false, meta: meta(ctx, startedAt) }, boolOpt(opts, 'pretty'));
     return EXIT.OK;
   }
 
@@ -819,7 +827,7 @@ async function cmdGenerate(command, opts, ctx, startedAt, state) {
   emit({
     ok: true, command, type, task_id: id, status: task.status, waited: true,
     task, downloads, credits_consumed: task.consumed_credits ?? null, meta: meta(ctx, startedAt),
-  }, opts.has('pretty'));
+  }, boolOpt(opts, 'pretty'));
   return EXIT.OK;
 }
 
@@ -853,8 +861,8 @@ async function cmdStatus(positionals, opts, ctx, startedAt) {
   const id = positionals[1];
   if (!id) throw usage('status requires: status <type> <task_id>');
   const base = basePath(type, opts);
-  const task = opts.has('wait') ? await pollTask(base, id, ctx, progressLogger(type)) : await getTask(base, id, ctx);
-  emit({ ok: true, command: 'status', type, task_id: id, status: task.status, task, meta: meta(ctx, startedAt) }, opts.has('pretty'));
+  const task = boolOpt(opts, 'wait') ? await pollTask(base, id, ctx, progressLogger(type)) : await getTask(base, id, ctx);
+  emit({ ok: true, command: 'status', type, task_id: id, status: task.status, task, meta: meta(ctx, startedAt) }, boolOpt(opts, 'pretty'));
   return EXIT.OK;
 }
 
@@ -867,7 +875,7 @@ async function cmdList(positionals, opts, ctx, startedAt) {
     sort_by: opts.has('sort_by') ? lastOf(opts.get('sort_by')) : '-created_at',
   };
   const tasks = await listTasks(base, query, ctx);
-  emit({ ok: true, command: 'list', type, ...query, count: tasks.length, tasks, meta: meta(ctx, startedAt) }, opts.has('pretty'));
+  emit({ ok: true, command: 'list', type, ...query, count: tasks.length, tasks, meta: meta(ctx, startedAt) }, boolOpt(opts, 'pretty'));
   return EXIT.OK;
 }
 
@@ -882,13 +890,13 @@ async function cmdDownload(positionals, opts, ctx, startedAt) {
   if (!TERMINAL.has(task.status)) task = await pollTask(base, id, ctx, progressLogger(type));
   if (task.status !== 'SUCCEEDED') throw new CliError('task-failed', `task is ${task.status}`, { taskId: id });
   const downloads = await downloadAssets(base, task, sel, ctx);
-  emit({ ok: true, command: 'download', type, task_id: id, status: task.status, downloads, meta: meta(ctx, startedAt) }, opts.has('pretty'));
+  emit({ ok: true, command: 'download', type, task_id: id, status: task.status, downloads, meta: meta(ctx, startedAt) }, boolOpt(opts, 'pretty'));
   return EXIT.OK;
 }
 
 async function cmdBalance(opts, ctx, startedAt) {
   const balance = await getBalance(ctx);
-  emit({ ok: true, command: 'balance', balance, meta: meta(ctx, startedAt) }, opts.has('pretty'));
+  emit({ ok: true, command: 'balance', balance, meta: meta(ctx, startedAt) }, boolOpt(opts, 'pretty'));
   return EXIT.OK;
 }
 
@@ -992,11 +1000,11 @@ async function main(argv) {
   try { parsed = parseArgs(argv); } catch (e) { return emitError(e, null, argv.includes('--pretty'), startedAt); }
   const { command, positionals, opts } = parsed;
 
-  LOG_QUIET = opts.has('quiet');
-  const pretty = opts.has('pretty');
-
+  let pretty = false;
   let installInterrupt;
   try {
+    LOG_QUIET = boolOpt(opts, 'quiet');
+    pretty = boolOpt(opts, 'pretty');
     const ctx = buildContext(opts);
     requireKey(ctx);
 
