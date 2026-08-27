@@ -33,7 +33,7 @@ import path from 'node:path';
 import process from 'node:process';
 
 // ── Section 3: constants ───────────────────────────────────────────────────
-const VERSION = '0.1.1';
+const VERSION = '0.1.2';
 const TEST_KEY = 'msy_dummy_api_key_for_test_mode_12345678';
 
 const DEFAULTS = {
@@ -164,7 +164,7 @@ const TYPES = {
     requires: [['input_task_id', 'model_url']],
   },
   animation: {
-    path: 'v1/animation',
+    path: 'v1/animations',
     params: {
       rig_task_id: { type: 'string' },
       action: { type: 'string' },
@@ -225,7 +225,7 @@ const TYPES = {
     requires: [['input_task_id', 'model_url']],
   },
   'analyze-printability': {
-    path: 'v1/analyze-printability',
+    path: 'v1/print/analyze',
     params: {
       input_task_id: { type: 'string' },
       model_url: { type: 'string' },
@@ -233,7 +233,7 @@ const TYPES = {
     requires: [['input_task_id', 'model_url']],
   },
   'repair-printability': {
-    path: 'v1/repair-printability',
+    path: 'v1/print/repair',
     params: {
       input_task_id: { type: 'string' },
       model_url: { type: 'string' },
@@ -241,7 +241,7 @@ const TYPES = {
     requires: [['input_task_id', 'model_url']],
   },
   'multi-color-print': {
-    path: 'v1/multi-color-print',
+    path: 'v1/print/multi-color',
     params: {
       input_task_id: { type: 'string' },
       model_url: { type: 'string' },

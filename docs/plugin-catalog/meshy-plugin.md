@@ -6,7 +6,7 @@
 
 **Author:** Flop (flopspm@gmail.com)
 
-**Version:** 0.1.1
+**Version:** 0.1.2
 
 **Keywords:** meshy, 3d, ai, text-to-3d, image-to-3d, generative, model-generation
 

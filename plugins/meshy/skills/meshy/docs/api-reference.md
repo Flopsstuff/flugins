@@ -94,7 +94,7 @@ Refine (`--mode refine` or the `refine` alias): `--preview-task-id` (required),
 `(id|url)`, `--character-height` / `--height-meters`, `--texture-image-url`.
 → `rigged_character_glb_url`. ≈ 5 credits.
 
-### `animation` (alias `animate`) — `v1/animation`
+### `animation` (alias `animate`) — `v1/animations`
 `--rig-task-id` (required), `--action` / `--animation-id`.
 → `animated_model_glb_url`, `video_url`. ≈ 3 credits.
 
@@ -117,14 +117,14 @@ Refine (`--mode refine` or the `refine` alias): `--preview-task-id` (required),
 ### `uv-unwrap` — `v1/uv-unwrap`
 `(id|url)` — **`.glb` only**. → `model_urls.glb`, `thumbnail_url`. ≈ 5 credits.
 
-### `analyze-printability` — `v1/analyze-printability`
+### `analyze-printability` — `v1/print/analyze`
 `(id|url)`. Returns watertightness / volume / hole / non-manifold metrics in the task
 object. **Free** (0 credits).
 
-### `repair-printability` — `v1/repair-printability`
+### `repair-printability` — `v1/print/repair`
 `(id|url)`. → repaired `model_urls`. ≈ 10 credits.
 
-### `multi-color-print` — `v1/multi-color-print`
+### `multi-color-print` — `v1/print/multi-color`
 `(id|url)` (textured model). → multi-color 3MF. ≈ 10 credits. Color-palette options
 (1–16 colors) via `--param` / `--json` (thinly documented).
 
