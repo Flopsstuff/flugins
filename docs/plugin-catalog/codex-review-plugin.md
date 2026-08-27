@@ -42,7 +42,7 @@ The skill is also model-invoked — asking Claude to "run a codex review against
 |---|---|
 | `--yes` / `-y` | Take the recommended action on every finding without asking |
 | `--base <branch>` | Review against this branch. Default: `origin/HEAD`, else `main`, else `master` |
-| `--uncommitted` | Review staged, unstaged and untracked changes instead of a branch diff |
+| `--uncommitted` | Review staged, unstaged and untracked changes instead of a branch diff. Fixes stay uncommitted |
 | `--commit <sha>` | Review the changes introduced by one commit |
 | anything else | Passed to `codex review` as custom review instructions |
 
@@ -57,7 +57,9 @@ Examples:
 
 ## What it does
 
-**1. Check the worktree is clean.** One commit per finding only means something if nothing unrelated is staged alongside it. The skill offers to stash and pops the stash at the end.
+**1. Establish what is being reviewed.** The default is committed work on this branch against the base branch — that is what "review my branch" means almost every time, and the only target the fix loop can commit into cleanly. `--uncommitted` is a real target too, and the two pull in opposite directions: reviewing uncommitted work needs the tree to stay dirty, reviewing a branch needs it clean. So when no flag was given and the worktree has uncommitted changes, the skill treats that as ambiguous and asks rather than guessing. With a flag, or with a clean tree, there is nothing to ask about.
+
+In uncommitted mode the end of the loop changes too: fixes stay in the working tree rather than becoming commits, because there is no way to separate a fix from the work-in-progress it sits inside.
 
 **2. Run the review.** Claude invokes `codex review` directly, redirecting the output to a log file rather than into its own context. That redirect is the point: `codex review` streams its whole agent session to stdout — every exec call, every tool result, every line of shell noise from your profile — so a real run is comfortably 200KB and several thousand lines, while the findings themselves are a few hundred bytes at the very end. Claude reads the tail, deduplicates (Codex repeats its final message), and makes the absolute paths repo-relative.
 
@@ -65,7 +67,7 @@ Examples:
 
 **4. Ask you, one finding at a time.** Findings are presented in batches of four as radio questions, each with a recommendation, a concrete description of the edit, and a specific statement of what stays broken if you skip. Where a genuinely different approach exists — fix the code, or fix the documentation that promised the behavior — it is offered as its own option instead of buried in prose. A free-text option is always available to override the framing.
 
-**5. Commit each fix separately.** One finding, one commit, in whatever convention the repository already uses (Conventional Commits, gitmoji, plain imperative — read from `git log`). Each message carries what the reviewer could not: what broke, why, and what was run to confirm the fix. The test suite runs before every commit; a failure means no commit.
+**5. Commit each fix separately** (branch and single-commit reviews). One finding, one commit, in whatever convention the repository already uses (Conventional Commits, gitmoji, plain imperative — read from `git log`). Each message carries what the reviewer could not: what broke, why, and what was run to confirm the fix. The test suite runs before every commit; a failure means no commit.
 
 **6. Report.** What landed with SHAs, what was skipped and what stays broken as a result, and — named plainly — what could not be verified.
 

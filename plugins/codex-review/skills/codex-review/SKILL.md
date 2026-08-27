@@ -33,27 +33,44 @@ One commit per finding is not bookkeeping fussiness. It keeps each fix independe
 
 ## Steps
 
-### 1. Check the worktree is clean
+### 1. Establish what is being reviewed
+
+**The default is committed work on this branch against the base branch.** That is what "review my branch" means almost every time, and it is the only target the fix loop can commit into cleanly.
+
+But `--uncommitted` is a real target too, and the two are mutually exclusive in a way that is easy to get wrong: reviewing uncommitted work means the working tree *must stay dirty*, while reviewing a branch means it must be clean. Resolve this before running anything.
 
 ```bash
 git status --porcelain
 ```
 
-Any output means uncommitted changes. Stop and deal with it before reviewing: the loop lands one commit per accepted finding, and `git add` would sweep unrelated work into whichever fix commits first, making each commit a lie about its own cause. Offer to `git stash push -u`, and remember to `git stash pop` at the very end.
+| Situation | What to do |
+|---|---|
+| User passed `--base`, `--commit` or `--uncommitted` | They said what they want. Use it, do not ask. |
+| No flag, worktree clean | Branch review against the base. Do not ask — there is nothing else it could mean. |
+| No flag, worktree dirty | **Ambiguous. Ask.** "Review my changes" could mean either the commits on this branch or the edits sitting in the tree. |
+
+For the ambiguous case use `AskUserQuestion` with three options: review the branch against its base (recommended — stash the working changes first and pop them at the end), review the uncommitted changes instead, or commit the working changes first and then review the branch. If `AskUserQuestion` is unavailable, print the same three and wait.
+
+Once the target is settled:
+
+- **Base or commit review** — the worktree must be clean. The loop lands one commit per accepted finding, and `git add` would otherwise sweep unrelated work into whichever fix commits first, making each commit a lie about its own cause. `git stash push -u` if needed and remember to pop at the end.
+- **Uncommitted review** — do **not** clean the worktree; those changes are the input. This mode also changes the end of the loop: **fixes stay uncommitted**. Edit the working tree, verify, and leave the result for the user alongside their own work — do not commit, because there is no way to separate a fix from the WIP it sits inside. Say so in the final report, and skip step 5e's commit entirely.
 
 There is no dependency pre-flight beyond this. If `codex` is missing or not signed in, the review command in step 2 says so plainly — read what it printed and handle it there.
 
 ### 2. Run the review
 
-Pick the target. With no flag from the user, review against the repo's base branch — `git symbolic-ref refs/remotes/origin/HEAD`, else `main`, else `master`.
+For a base review with no branch given, resolve it as `git symbolic-ref refs/remotes/origin/HEAD`, else `main`, else `master`.
 
 **Redirect the output to a file. Do not let it into context directly.**
 
 ```bash
-LOG="$(mktemp -t codex-review).log"
+LOG="$(mktemp "${TMPDIR:-/tmp}/codex-review-XXXXXX")"
 codex review --base main > "$LOG" 2>&1; echo "exit=$? log=$LOG"
 wc -l "$LOG"
 ```
+
+Write the template with six trailing `X`s and no suffix after them. `mktemp -t codex-review` is a BSD-ism that fails on GNU/Linux with *too few X's in template*; a `"$(mktemp …).log"` form then leaves `LOG` as a bare `.log` in the current directory, dropping a six-figure log into the repository and breaking the clean-worktree invariant this skill just established.
 
 This matters more than it looks. `codex review` streams its entire agent session to stdout — every exec call, every tool result, the shell noise from the user's profile. A real run is comfortably 200KB and several thousand lines, while the findings are a few hundred bytes at the very end. Reading it whole wastes most of a context window and, past a point, truncates the part you actually need.
 
@@ -61,11 +78,13 @@ This matters more than it looks. `codex review` streams its entire agent session
 
 ### 3. Extract the findings
 
-They live at the very end. Read the tail first and widen only if needed:
+They live at the very end, after the last bare `codex` line. Slice exactly that — do not guess a line count with `tail -n`, because the findings block grows with the number of findings and a guess either truncates it or drags in session noise:
 
 ```bash
-tail -n 120 "$LOG"
+awk '/^codex$/{o="";next}{o=o $0 ORS}END{printf "%s", o}' "$LOG"
 ```
+
+The `awk` resets its buffer at every `codex` marker, so what survives is everything after the last one — a few dozen lines regardless of whether the log is 2,000 lines or 20,000.
 
 The shape to look for:
 
@@ -88,7 +107,11 @@ Three things to know about that block:
 - **The verdict comes before the first `Full review comments:`; the findings come after the last one.** Taking both from the same occurrence either pulls the whole list into the summary or glues the repeated verdict onto the final finding's body.
 - **Paths are absolute.** Make them repo-relative before showing them to the user or putting them in a commit message.
 
-If `tail` does not show the block, find it: `grep -n "Full review comments:" "$LOG"` and `sed -n '<start>,$p' "$LOG"`. If the review genuinely produced no findings, that is a valid outcome — report the verdict and stop. Do not go hunting for something to fix.
+If the slice comes back empty — no `codex` marker in the log — fall back to `grep -n "Full review comments:" "$LOG"` and `sed -n '<start>,$p' "$LOG"`. Note that `grep` will also match this file and any other document that quotes the header, so trust the line numbers in the log, not the count.
+
+A cleaner source exists if the stdout parse ever gets awkward: Codex writes the session to `~/.codex/sessions/<yyyy>/<mm>/<dd>/rollout-*-<session-id>.jsonl`, where the final message is a single record with `type: response_item` and `payload.role: assistant` — no duplication, no session noise. The session id is in the log's header (`grep -m1 'session id:' "$LOG"`).
+
+If the review genuinely produced no findings, that is a valid outcome — report the verdict and stop. Do not go hunting for something to fix.
 
 ### 4. Seed a task list
 
@@ -98,7 +121,13 @@ Use `TaskCreate`, one task per finding, subject `<id> <severity> <file>:<line>` 
 
 **5a. Read the code the claim points at.** Open the file around the line. The claim is about code, so the code decides. Four mismatches are common enough to check for by name:
 
-- **Already fixed on the base branch.** Compare against the base: `git show <base>:<file>`. If the base has the fix and the branch does not, the branch is stale, and the right move is `git cherry-pick -x <sha>` of the upstream commit rather than a hand-written duplicate that will conflict later. Find it with `git log --oneline <base> -- <file>`.
+- **Already fixed on the base branch.** Compare against the base: `git show <base>:<file>`. If the base has the fix and the branch does not, the branch is stale, and the right move is to take the upstream commit rather than write a duplicate that will conflict later. Find it with `git log --oneline <base> -- <file>`, then apply it **without committing**:
+
+  ```bash
+  git cherry-pick -x -n <sha>
+  ```
+
+  A bare `git cherry-pick` commits the moment it applies, which would jump the verification gate in 5e and put a possibly-failing commit in history before anyone ran a test. `-n` stages the change and stops; verify it in this branch's context, then commit it like any other fix. If verification fails, `git cherry-pick --abort` (or `git reset --hard HEAD` once staged) leaves no trace.
 - **Already fixed later on this branch.** The reviewer may be reading an earlier state. `git log -p --oneline -- <file>` settles it.
 - **True in general, false here.** A claim about an API's behavior can be right about the API and wrong about this call site.
 - **Real but the suggested fix overreaches.** Fix the defect; do not adopt a rewrite that carries unrelated opinions.
@@ -137,9 +166,9 @@ Apply? (y = fix, n = skip)
 
 **5e. Apply the accepted decision.**
 
-1. **Edit.** Use `Edit` with exact surrounding context. Keep the change scoped to the finding — an accepted finding is not a licence to refactor the file.
+1. **Edit.** Use `Edit` with exact surrounding context, or leave the staged result of a `cherry-pick -n` from 5a in place. Keep the change scoped to the finding — an accepted finding is not a licence to refactor the file.
 2. **Verify.** Re-run whatever you ran in 5b and confirm the behavior flipped. Then run the project's test suite if it has one — find the command from `CLAUDE.md`, `README.md`, `CONTRIBUTING.md`, or the language manifest (`package.json` scripts, `Makefile`, `pyproject.toml`, `Cargo.toml`, `go.mod`). If a test fails, do not commit: refine the fix, or flip to skip and surface the failure.
-3. **Commit, one finding per commit.** Match the repo's existing convention — read `git log --oneline -10` and copy what you see (Conventional Commits, gitmoji, or plain imperative). The body should carry what the reviewer could not: what breaks, why, and what you ran to confirm the fix.
+3. **Commit, one finding per commit** — *unless this is an uncommitted review*, where step 1 established that fixes stay in the working tree. In that mode, stop after verifying and move to the next finding. Otherwise, match the repo's existing convention — read `git log --oneline -10` and copy what you see (Conventional Commits, gitmoji, or plain imperative). The body should carry what the reviewer could not: what breaks, why, and what you ran to confirm the fix.
 
    ```text
    <convention-matching subject line>
