@@ -19,7 +19,7 @@ lean workflow lives in `SKILL.md`. Run `node meshy.mjs help` for a quick command
 | `--base-url <url>` | API base | `https://api.meshy.ai/openapi/` |
 | `--out <dir>` | download finished assets to `<dir>` | — (no download) |
 | `--formats glb,fbx` | model formats to download | `glb` |
-| `--textures` / `--thumbnail` / `--all` | also download texture maps / thumbnail / everything | off |
+| `--textures` / `--thumbnail` / `--all` | also download texture maps / thumbnail (every view for `multi-image-to-3d`) / everything | off |
 | `--no-wait` | create the task, print its id, exit (no polling) | waits |
 | `--wait` | (for `status`) poll until terminal | off |
 | `--poll-timeout <ms>` | total wait before giving up | `1200000` (20 min) |
@@ -33,7 +33,8 @@ lean workflow lives in `SKILL.md`. Run `node meshy.mjs help` for a quick command
 
 **Body-merge precedence:** command presets < `--json` < typed flags < `--param`.
 Flag names accept dashes or underscores (`--target-polycount` = `--target_polycount`).
-Booleans support `--flag`, `--flag=false`, and `--no-flag`. Unknown flags are a usage
+Booleans support `--flag`, `--flag=false`, and `--no-flag`; an explicit false wins over
+`--all` (`--all --no-thumbnail` downloads everything except previews). Unknown flags are a usage
 error (exit 2) — use `--param`/`--json` for fields without a dedicated flag.
 
 ## Output JSON (STDOUT, exactly one object)
