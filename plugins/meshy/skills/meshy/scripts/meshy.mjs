@@ -33,7 +33,7 @@ import path from 'node:path';
 import process from 'node:process';
 
 // ── Section 3: constants ───────────────────────────────────────────────────
-const VERSION = '0.1.0';
+const VERSION = '0.1.1';
 const TEST_KEY = 'msy_dummy_api_key_for_test_mode_12345678';
 
 const DEFAULTS = {
