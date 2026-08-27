@@ -36,7 +36,8 @@ export default defineConfig({
             { text: 'Git Plugin', link: '/plugin-catalog/git-plugin' },
             { text: 'KSeF Plugin', link: '/plugin-catalog/ksef-plugin' },
             { text: 'Resolve CodeRabbit Plugin', link: '/plugin-catalog/resolve-coderabbit-plugin' },
-            { text: 'Meshy Plugin', link: '/plugin-catalog/meshy-plugin' }
+            { text: 'Meshy Plugin', link: '/plugin-catalog/meshy-plugin' },
+            { text: 'Codex Review Plugin', link: '/plugin-catalog/codex-review-plugin' }
           ]
         }
       ],
