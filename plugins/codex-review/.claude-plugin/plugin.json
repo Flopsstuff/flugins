@@ -1,0 +1,11 @@
+{
+  "name": "codex-review",
+  "version": "0.1.0",
+  "description": "Run a codex code review against a base branch, then triage every finding with the user and land each accepted fix as its own verified commit",
+  "homepage": "https://github.com/Flopsstuff/flugins",
+  "author": {
+    "name": "Flop",
+    "email": "flopspm@gmail.com"
+  },
+  "keywords": ["review", "codex", "code-review", "refactor", "bugfix", "git"]
+}
