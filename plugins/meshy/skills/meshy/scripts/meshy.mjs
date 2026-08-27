@@ -692,6 +692,16 @@ function collectUrls(task, sel) {
     const ext = extFromUrl(task.thumbnail_url, 'png');
     items.push({ asset: 'thumbnail', format: ext, url: task.thumbnail_url, name: `${idShort}-thumb.${ext}` });
   }
+
+  // multi-image-to-3d returns a {front,right,back,left} map instead of a single
+  // thumbnail_url; without this every view is silently dropped from --thumbnail/--all.
+  if (sel.thumbnail && task.thumbnail_urls && typeof task.thumbnail_urls === 'object') {
+    for (const [view, url] of Object.entries(task.thumbnail_urls)) {
+      if (!url) continue;
+      const ext = extFromUrl(url, 'png');
+      items.push({ asset: 'thumbnail', format: ext, url, name: `${idShort}-thumb-${sanitizeName(view)}.${ext}` });
+    }
+  }
   return items;
 }
 
