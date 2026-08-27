@@ -492,6 +492,24 @@ function buildUrl(baseUrl, p, query) {
   return u;
 }
 
+// Native fetch wraps socket/DNS failures in a TypeError whose real errno lives
+// in `cause` (sometimes nested, e.g. AggregateError from a happy-eyeballs race),
+// so walk the chain instead of reading `e.code` off the top-level error.
+const TRANSIENT_CODES = new Set(['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'EAI_AGAIN', 'ECONNREFUSED', 'EPIPE', 'ECONNABORTED', 'ENETUNREACH', 'EHOSTUNREACH', 'UND_ERR_SOCKET', 'UND_ERR_CONNECT_TIMEOUT', 'UND_ERR_HEADERS_TIMEOUT']);
+
+function netErrorCode(e) {
+  for (let cur = e, depth = 0; cur && depth < 5; cur = cur.cause, depth++) {
+    if (typeof cur.code === 'string') return cur.code;
+    if (Array.isArray(cur.errors)) {
+      for (const inner of cur.errors) {
+        const code = netErrorCode(inner);
+        if (code) return code;
+      }
+    }
+  }
+  return null;
+}
+
 async function request(method, p, { body, query, ctx, auth = true } = {}) {
   const url = buildUrl(ctx.baseUrl, p, query);
   let attempt = 0;
@@ -525,14 +543,15 @@ async function request(method, p, { body, query, ctx, auth = true } = {}) {
       // reached the server but lost its response would otherwise be re-sent,
       // creating a second task and charging credits twice on the paid API.
       const idempotent = method === 'GET' || method === 'HEAD';
-      const transient = e.name === 'AbortError' || ['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'EAI_AGAIN', 'ECONNREFUSED'].includes(e.code);
+      const code = netErrorCode(e);
+      const transient = e.name === 'AbortError' || TRANSIENT_CODES.has(code);
       if (idempotent && transient && attempt < ctx.maxRetries) {
         attempt++;
-        logErr(`network error (${e.code || e.name}), retry ${attempt}/${ctx.maxRetries}…`);
+        logErr(`network error (${code || e.name}), retry ${attempt}/${ctx.maxRetries}…`);
         await sleep(backoffDelay(attempt));
         continue;
       }
-      throw new CliError('network', `request failed: ${e.code || e.name || e.message}`);
+      throw new CliError('network', `request failed: ${code || e.name || e.message}`);
     } finally {
       clearTimeout(timer);
     }
