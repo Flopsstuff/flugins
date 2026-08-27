@@ -33,7 +33,7 @@ import path from 'node:path';
 import process from 'node:process';
 
 // ── Section 3: constants ───────────────────────────────────────────────────
-const VERSION = '0.1.0';
+const VERSION = '0.1.2';
 const TEST_KEY = 'msy_dummy_api_key_for_test_mode_12345678';
 
 const DEFAULTS = {
@@ -164,7 +164,7 @@ const TYPES = {
     requires: [['input_task_id', 'model_url']],
   },
   animation: {
-    path: 'v1/animation',
+    path: 'v1/animations',
     params: {
       rig_task_id: { type: 'string' },
       action: { type: 'string' },
@@ -225,7 +225,7 @@ const TYPES = {
     requires: [['input_task_id', 'model_url']],
   },
   'analyze-printability': {
-    path: 'v1/analyze-printability',
+    path: 'v1/print/analyze',
     params: {
       input_task_id: { type: 'string' },
       model_url: { type: 'string' },
@@ -233,7 +233,7 @@ const TYPES = {
     requires: [['input_task_id', 'model_url']],
   },
   'repair-printability': {
-    path: 'v1/repair-printability',
+    path: 'v1/print/repair',
     params: {
       input_task_id: { type: 'string' },
       model_url: { type: 'string' },
@@ -241,7 +241,7 @@ const TYPES = {
     requires: [['input_task_id', 'model_url']],
   },
   'multi-color-print': {
-    path: 'v1/multi-color-print',
+    path: 'v1/print/multi-color',
     params: {
       input_task_id: { type: 'string' },
       model_url: { type: 'string' },
@@ -374,6 +374,13 @@ function parseArgs(argv) {
 const lastOf = (v) => (Array.isArray(v) ? v[v.length - 1] : v);
 const splitList = (v) => (Array.isArray(v) ? v : [v]).flatMap((s) => String(s).split(',')).map((s) => s.trim()).filter(Boolean);
 
+// Booleans are documented as `--flag`, `--flag=false` and `--no-flag`, so the
+// parser stores a VALUE for them. Testing opts.has() alone would read
+// `--wait=false` as "wait" and `--textures=false` as "download textures".
+function boolOpt(opts, name, fallback = false) {
+  return opts.has(name) ? coerce(opts.get(name), { type: 'boolean' }, name) : fallback;
+}
+
 function coerce(value, spec, name) {
   const flag = '--' + name.replace(/_/g, '-');
   switch (spec.type) {
@@ -492,6 +499,24 @@ function buildUrl(baseUrl, p, query) {
   return u;
 }
 
+// Native fetch wraps socket/DNS failures in a TypeError whose real errno lives
+// in `cause` (sometimes nested, e.g. AggregateError from a happy-eyeballs race),
+// so walk the chain instead of reading `e.code` off the top-level error.
+const TRANSIENT_CODES = new Set(['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'EAI_AGAIN', 'ECONNREFUSED', 'EPIPE', 'ECONNABORTED', 'ENETUNREACH', 'EHOSTUNREACH', 'UND_ERR_SOCKET', 'UND_ERR_CONNECT_TIMEOUT', 'UND_ERR_HEADERS_TIMEOUT']);
+
+function netErrorCode(e) {
+  for (let cur = e, depth = 0; cur && depth < 5; cur = cur.cause, depth++) {
+    if (typeof cur.code === 'string') return cur.code;
+    if (Array.isArray(cur.errors)) {
+      for (const inner of cur.errors) {
+        const code = netErrorCode(inner);
+        if (code) return code;
+      }
+    }
+  }
+  return null;
+}
+
 async function request(method, p, { body, query, ctx, auth = true } = {}) {
   const url = buildUrl(ctx.baseUrl, p, query);
   let attempt = 0;
@@ -525,14 +550,15 @@ async function request(method, p, { body, query, ctx, auth = true } = {}) {
       // reached the server but lost its response would otherwise be re-sent,
       // creating a second task and charging credits twice on the paid API.
       const idempotent = method === 'GET' || method === 'HEAD';
-      const transient = e.name === 'AbortError' || ['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'EAI_AGAIN', 'ECONNREFUSED'].includes(e.code);
+      const code = netErrorCode(e);
+      const transient = e.name === 'AbortError' || TRANSIENT_CODES.has(code);
       if (idempotent && transient && attempt < ctx.maxRetries) {
         attempt++;
-        logErr(`network error (${e.code || e.name}), retry ${attempt}/${ctx.maxRetries}…`);
+        logErr(`network error (${code || e.name}), retry ${attempt}/${ctx.maxRetries}…`);
         await sleep(backoffDelay(attempt));
         continue;
       }
-      throw new CliError('network', `request failed: ${e.code || e.name || e.message}`);
+      throw new CliError('network', `request failed: ${code || e.name || e.message}`);
     } finally {
       clearTimeout(timer);
     }
@@ -673,6 +699,16 @@ function collectUrls(task, sel) {
     const ext = extFromUrl(task.thumbnail_url, 'png');
     items.push({ asset: 'thumbnail', format: ext, url: task.thumbnail_url, name: `${idShort}-thumb.${ext}` });
   }
+
+  // multi-image-to-3d returns a {front,right,back,left} map instead of a single
+  // thumbnail_url; without this every view is silently dropped from --thumbnail/--all.
+  if (sel.thumbnail && task.thumbnail_urls && typeof task.thumbnail_urls === 'object') {
+    for (const [view, url] of Object.entries(task.thumbnail_urls)) {
+      if (!url) continue;
+      const ext = extFromUrl(url, 'png');
+      items.push({ asset: 'thumbnail', format: ext, url, name: `${idShort}-thumb-${sanitizeName(view)}.${ext}` });
+    }
+  }
   return items;
 }
 
@@ -741,9 +777,10 @@ function downloadSelection(opts) {
   return {
     outDir: opts.has('out') ? lastOf(opts.get('out')) : null,
     formats: opts.has('formats') ? splitList(opts.get('formats')) : DEFAULTS.formats,
-    textures: opts.has('textures') || opts.has('all'),
-    thumbnail: opts.has('thumbnail') || opts.has('all'),
-    all: opts.has('all'),
+    // an explicit --textures=false / --no-thumbnail opts out even under --all
+    textures: opts.has('textures') ? boolOpt(opts, 'textures') : boolOpt(opts, 'all'),
+    thumbnail: opts.has('thumbnail') ? boolOpt(opts, 'thumbnail') : boolOpt(opts, 'all'),
+    all: boolOpt(opts, 'all'),
   };
 }
 
@@ -775,8 +812,8 @@ async function cmdGenerate(command, opts, ctx, startedAt, state) {
   if (state) state.taskId = id; // so SIGINT can emit a resumable task id
   logErr(`created ${type} task ${id}`);
 
-  if (opts.has('no_wait')) {
-    emit({ ok: true, command, type, task_id: id, status: 'PENDING', waited: false, meta: meta(ctx, startedAt) }, opts.has('pretty'));
+  if (boolOpt(opts, 'no_wait')) {
+    emit({ ok: true, command, type, task_id: id, status: 'PENDING', waited: false, meta: meta(ctx, startedAt) }, boolOpt(opts, 'pretty'));
     return EXIT.OK;
   }
 
@@ -790,7 +827,7 @@ async function cmdGenerate(command, opts, ctx, startedAt, state) {
   emit({
     ok: true, command, type, task_id: id, status: task.status, waited: true,
     task, downloads, credits_consumed: task.consumed_credits ?? null, meta: meta(ctx, startedAt),
-  }, opts.has('pretty'));
+  }, boolOpt(opts, 'pretty'));
   return EXIT.OK;
 }
 
@@ -824,8 +861,8 @@ async function cmdStatus(positionals, opts, ctx, startedAt) {
   const id = positionals[1];
   if (!id) throw usage('status requires: status <type> <task_id>');
   const base = basePath(type, opts);
-  const task = opts.has('wait') ? await pollTask(base, id, ctx, progressLogger(type)) : await getTask(base, id, ctx);
-  emit({ ok: true, command: 'status', type, task_id: id, status: task.status, task, meta: meta(ctx, startedAt) }, opts.has('pretty'));
+  const task = boolOpt(opts, 'wait') ? await pollTask(base, id, ctx, progressLogger(type)) : await getTask(base, id, ctx);
+  emit({ ok: true, command: 'status', type, task_id: id, status: task.status, task, meta: meta(ctx, startedAt) }, boolOpt(opts, 'pretty'));
   return EXIT.OK;
 }
 
@@ -838,7 +875,7 @@ async function cmdList(positionals, opts, ctx, startedAt) {
     sort_by: opts.has('sort_by') ? lastOf(opts.get('sort_by')) : '-created_at',
   };
   const tasks = await listTasks(base, query, ctx);
-  emit({ ok: true, command: 'list', type, ...query, count: tasks.length, tasks, meta: meta(ctx, startedAt) }, opts.has('pretty'));
+  emit({ ok: true, command: 'list', type, ...query, count: tasks.length, tasks, meta: meta(ctx, startedAt) }, boolOpt(opts, 'pretty'));
   return EXIT.OK;
 }
 
@@ -853,13 +890,13 @@ async function cmdDownload(positionals, opts, ctx, startedAt) {
   if (!TERMINAL.has(task.status)) task = await pollTask(base, id, ctx, progressLogger(type));
   if (task.status !== 'SUCCEEDED') throw new CliError('task-failed', `task is ${task.status}`, { taskId: id });
   const downloads = await downloadAssets(base, task, sel, ctx);
-  emit({ ok: true, command: 'download', type, task_id: id, status: task.status, downloads, meta: meta(ctx, startedAt) }, opts.has('pretty'));
+  emit({ ok: true, command: 'download', type, task_id: id, status: task.status, downloads, meta: meta(ctx, startedAt) }, boolOpt(opts, 'pretty'));
   return EXIT.OK;
 }
 
 async function cmdBalance(opts, ctx, startedAt) {
   const balance = await getBalance(ctx);
-  emit({ ok: true, command: 'balance', balance, meta: meta(ctx, startedAt) }, opts.has('pretty'));
+  emit({ ok: true, command: 'balance', balance, meta: meta(ctx, startedAt) }, boolOpt(opts, 'pretty'));
   return EXIT.OK;
 }
 
@@ -963,11 +1000,11 @@ async function main(argv) {
   try { parsed = parseArgs(argv); } catch (e) { return emitError(e, null, argv.includes('--pretty'), startedAt); }
   const { command, positionals, opts } = parsed;
 
-  LOG_QUIET = opts.has('quiet');
-  const pretty = opts.has('pretty');
-
+  let pretty = false;
   let installInterrupt;
   try {
+    LOG_QUIET = boolOpt(opts, 'quiet');
+    pretty = boolOpt(opts, 'pretty');
     const ctx = buildContext(opts);
     requireKey(ctx);
 

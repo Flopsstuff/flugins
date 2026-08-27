@@ -19,7 +19,7 @@ lean workflow lives in `SKILL.md`. Run `node meshy.mjs help` for a quick command
 | `--base-url <url>` | API base | `https://api.meshy.ai/openapi/` |
 | `--out <dir>` | download finished assets to `<dir>` | — (no download) |
 | `--formats glb,fbx` | model formats to download | `glb` |
-| `--textures` / `--thumbnail` / `--all` | also download texture maps / thumbnail / everything | off |
+| `--textures` / `--thumbnail` / `--all` | also download texture maps / thumbnail (every view for `multi-image-to-3d`) / everything | off |
 | `--no-wait` | create the task, print its id, exit (no polling) | waits |
 | `--wait` | (for `status`) poll until terminal | off |
 | `--poll-timeout <ms>` | total wait before giving up | `1200000` (20 min) |
@@ -33,7 +33,8 @@ lean workflow lives in `SKILL.md`. Run `node meshy.mjs help` for a quick command
 
 **Body-merge precedence:** command presets < `--json` < typed flags < `--param`.
 Flag names accept dashes or underscores (`--target-polycount` = `--target_polycount`).
-Booleans support `--flag`, `--flag=false`, and `--no-flag`. Unknown flags are a usage
+Booleans support `--flag`, `--flag=false`, and `--no-flag`; an explicit false wins over
+`--all` (`--all --no-thumbnail` downloads everything except previews). Unknown flags are a usage
 error (exit 2) — use `--param`/`--json` for fields without a dedicated flag.
 
 ## Output JSON (STDOUT, exactly one object)
@@ -93,7 +94,7 @@ Refine (`--mode refine` or the `refine` alias): `--preview-task-id` (required),
 `(id|url)`, `--character-height` / `--height-meters`, `--texture-image-url`.
 → `rigged_character_glb_url`. ≈ 5 credits.
 
-### `animation` (alias `animate`) — `v1/animation`
+### `animation` (alias `animate`) — `v1/animations`
 `--rig-task-id` (required), `--action` / `--animation-id`.
 → `animated_model_glb_url`, `video_url`. ≈ 3 credits.
 
@@ -116,14 +117,14 @@ Refine (`--mode refine` or the `refine` alias): `--preview-task-id` (required),
 ### `uv-unwrap` — `v1/uv-unwrap`
 `(id|url)` — **`.glb` only**. → `model_urls.glb`, `thumbnail_url`. ≈ 5 credits.
 
-### `analyze-printability` — `v1/analyze-printability`
+### `analyze-printability` — `v1/print/analyze`
 `(id|url)`. Returns watertightness / volume / hole / non-manifold metrics in the task
 object. **Free** (0 credits).
 
-### `repair-printability` — `v1/repair-printability`
+### `repair-printability` — `v1/print/repair`
 `(id|url)`. → repaired `model_urls`. ≈ 10 credits.
 
-### `multi-color-print` — `v1/multi-color-print`
+### `multi-color-print` — `v1/print/multi-color`
 `(id|url)` (textured model). → multi-color 3MF. ≈ 10 credits. Color-palette options
 (1–16 colors) via `--param` / `--json` (thinly documented).
 

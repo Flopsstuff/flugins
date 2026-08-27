@@ -1,6 +1,6 @@
 {
   "name": "meshy",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Generate 3D models, textures, rigs and animations from text or images via the Meshy AI API — a zero-dependency Node client wrapped in a skill",
   "homepage": "https://github.com/Flopsstuff/flugins",
   "author": {
