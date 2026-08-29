@@ -1236,9 +1236,29 @@ async function cmdTrigger(ctx) {
     warn(`this webhook requires "${target.authentication}" auth — pass it with --header 'Authorization=…'`);
   }
 
-  const body = await readBody(flags);
+  let body = await readBody(flags);
   const headers = pairsToObject(flagList(flags, 'header'), 'header');
-  if (await dryRun(flags, method, url, { body })) return null;
+
+  // fetch throws on a GET/HEAD with a body, so a GET webhook takes its payload as query
+  // parameters — which is where n8n reads it from anyway ($json.query).
+  let payloadQuery;
+  if (['GET', 'HEAD'].includes(method) && body !== undefined) {
+    const scalar = body && typeof body === 'object' && !Array.isArray(body)
+      && Object.values(body).every((v) => v === null || ['string', 'number', 'boolean'].includes(typeof v));
+    if (!scalar) {
+      throw usage(
+        `a ${method} webhook cannot carry a body, and this payload is not flat enough for query parameters`,
+        'pass --method POST, or reduce the payload to top-level string/number/boolean fields',
+      );
+    }
+    payloadQuery = Object.fromEntries(
+      Object.entries(body).filter(([, v]) => v !== null).map(([k, v]) => [k, String(v)]),
+    );
+    log(`[trigger] ${method} entrypoint — payload moved into the query string`);
+    body = undefined;
+  }
+
+  if (await dryRun(flags, method, url, { query: payloadQuery, body })) return null;
 
   // Remember where the execution list stood before firing, so --follow can only ever report an
   // execution this call produced — not one from a minute ago or from a concurrent run.
@@ -1252,7 +1272,7 @@ async function cmdTrigger(ctx) {
   // Deliberately unauthenticated: a webhook is a public entrypoint, the API key must not leak to it.
   let res;
   try {
-    res = await apiRequest(cfg, method, url, { body, headers, auth: false, raw: true });
+    res = await apiRequest(cfg, method, url, { query: payloadQuery, body, headers, auth: false, raw: true });
   } catch (err) {
     if (err.kind === 'notfound') {
       throw new CliError('notfound', `the webhook at ${url} answered 404`, {
