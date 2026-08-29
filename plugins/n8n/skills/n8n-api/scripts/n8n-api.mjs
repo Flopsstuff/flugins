@@ -136,6 +136,8 @@ function resolveConfig(flags) {
       base: String(webhookBase).replace(/\/+$/, ''),
       path: trimSlashes(flags['webhook-path'] || env.N8N_ENDPOINT_WEBHOOK || 'webhook'),
       testPath: trimSlashes(flags['webhook-test-path'] || env.N8N_ENDPOINT_WEBHOOK_TEST || 'webhook-test'),
+      formPath: trimSlashes(flags['form-path'] || env.N8N_ENDPOINT_FORM || 'form'),
+      formTestPath: trimSlashes(flags['form-test-path'] || env.N8N_ENDPOINT_FORM_TEST || 'form-test'),
       customised: Boolean(flags['webhook-base'] || env.N8N_WEBHOOK_URL || env.WEBHOOK_URL
         || flags['webhook-path'] || env.N8N_ENDPOINT_WEBHOOK
         || flags['webhook-test-path'] || env.N8N_ENDPOINT_WEBHOOK_TEST),
@@ -1175,7 +1177,7 @@ const FORM_NODE_TYPES = new Set(['n8n-nodes-base.formTrigger', '@n8n/n8n-nodes-l
 const CHAT_NODE_TYPES = new Set(['@n8n/n8n-nodes-langchain.chatTrigger']);
 
 function describeEntrypoints(wf, cfg) {
-  const { base, path: hook, testPath: hookTest } = cfg.webhook;
+  const { base, path: hook, testPath: hookTest, formPath: form, formTestPath: formTest } = cfg.webhook;
   const out = [];
   for (const node of wf.nodes || []) {
     const type = node.type || '';
@@ -1189,7 +1191,7 @@ function describeEntrypoints(wf, cfg) {
         disabled: node.disabled || undefined,
       });
     } else if (FORM_NODE_TYPES.has(type) && routePath) {
-      out.push({ kind: 'form', node: node.name, method: 'POST', production: `${base}/form/${routePath}`, test: `${base}/form-test/${routePath}`, disabled: node.disabled || undefined });
+      out.push({ kind: 'form', node: node.name, method: 'POST', production: `${base}/${form}/${routePath}`, test: `${base}/${formTest}/${routePath}`, disabled: node.disabled || undefined });
     } else if (CHAT_NODE_TYPES.has(type) && routePath) {
       out.push({ kind: 'chat', node: node.name, method: 'POST', production: `${base}/${hook}/${routePath}/chat`, test: `${base}/${hookTest}/${routePath}/chat`, disabled: node.disabled || undefined });
     } else if (/trigger$/i.test(type) || type.endsWith('.cron') || type.endsWith('.interval')) {
@@ -1603,6 +1605,7 @@ const GLOBAL_FLAGS = {
   '--webhook-base <url>': 'webhook host when it differs from the API host (else $N8N_WEBHOOK_URL)',
   '--webhook-path <seg>': 'production webhook segment (else $N8N_ENDPOINT_WEBHOOK, default "webhook")',
   '--webhook-test-path <seg>': 'test webhook segment (else $N8N_ENDPOINT_WEBHOOK_TEST, default "webhook-test")',
+  '--form-path <seg>': 'form segment (else $N8N_ENDPOINT_FORM, default "form")',
   '--timeout <ms>': 'per-request timeout (default 60000)',
   '--retry-unsafe': 'also retry POST/PATCH on 5xx and network errors (may duplicate the operation)',
   '--debug': 'log HTTP details to stderr (the key is redacted)',
