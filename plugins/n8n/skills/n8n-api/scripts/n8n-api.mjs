@@ -1548,8 +1548,9 @@ async function cmdTestRuns(ctx) {
       return { ok: true, command: 'test-runs list', workflow: { id: wf.id, name: wf.name }, count: items.length, nextCursor, data: items };
     }
     case 'start': {
-      if (await dryRun(flags, 'POST', base)) return null;
-      const res = await apiRequest(cfg, 'POST', base, { body: (await readBody(flags)) ?? {} });
+      const body = (await readBody(flags)) ?? {};
+      if (await dryRun(flags, 'POST', base, { body })) return null;
+      const res = await apiRequest(cfg, 'POST', base, { body });
       return { ok: true, command: 'test-runs start', data: res.body };
     }
     case 'get': {
