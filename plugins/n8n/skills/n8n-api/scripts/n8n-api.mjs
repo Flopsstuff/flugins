@@ -123,9 +123,23 @@ function resolveConfig(flags) {
   }
   const apiKey = flags['api-key'] || flags.apiKey || env.N8N_API_KEY || env.N8N_API_TOKEN;
   const { origin, api } = normaliseBase(rawUrl);
+  // Webhook URLs are NOT derived from the API base: n8n lets the host move them
+  // (N8N_ENDPOINT_WEBHOOK / _TEST) and, behind a reverse proxy, replace the whole
+  // base (N8N_WEBHOOK_URL, aliased by the deprecated WEBHOOK_URL). Flags win, then
+  // the environment this client runs in, then the instance origin.
+  const trimSlashes = (v) => String(v).replace(/^\/+|\/+$/g, '');
+  const webhookBase = flags['webhook-base'] || env.N8N_WEBHOOK_URL || env.WEBHOOK_URL || origin;
   return {
     origin,
     api,
+    webhook: {
+      base: String(webhookBase).replace(/\/+$/, ''),
+      path: trimSlashes(flags['webhook-path'] || env.N8N_ENDPOINT_WEBHOOK || 'webhook'),
+      testPath: trimSlashes(flags['webhook-test-path'] || env.N8N_ENDPOINT_WEBHOOK_TEST || 'webhook-test'),
+      customised: Boolean(flags['webhook-base'] || env.N8N_WEBHOOK_URL || env.WEBHOOK_URL
+        || flags['webhook-path'] || env.N8N_ENDPOINT_WEBHOOK
+        || flags['webhook-test-path'] || env.N8N_ENDPOINT_WEBHOOK_TEST),
+    },
     apiKey: apiKey ? String(apiKey).trim() : null,
     timeout: Number(flags.timeout || env.N8N_API_TIMEOUT || 60000),
     debug: Boolean(flags.debug),
@@ -169,8 +183,15 @@ function classify(status) {
   return 'badrequest';
 }
 
-function hintFor(status, body, url) {
+function hintFor(status, body, url, authenticated = true) {
   const msg = typeof body?.message === 'string' ? body.message : '';
+  // Webhook/form calls go out without the API key on purpose, so a 401/403 there
+  // is the trigger node's own auth talking — not a problem with the key.
+  if (!authenticated && (status === 401 || status === 403)) {
+    return 'this entrypoint was called without the API key (webhooks are public, the key is never sent to them). '
+      + "A 401/403 means the trigger node has its own authentication — pass it with --header 'Authorization=…' "
+      + "or --header 'X-My-Header=…'.";
+  }
   if (status === 401) {
     return 'the API key was rejected — it may be expired, revoked, or issued by another instance. '
       + 'Regenerate it in n8n under Settings → n8n API.';
@@ -234,7 +255,7 @@ async function apiRequest(cfg, method, endpoint, { query, body, headers, auth = 
       }
       throw new CliError(classify(res.status), parsed?.message || `HTTP ${res.status} on ${method} ${url.pathname}`, {
         status: res.status,
-        hint: hintFor(res.status, parsed, url),
+        hint: hintFor(res.status, parsed, url, auth),
         details: parsed,
       });
     } catch (err) {
@@ -1108,7 +1129,8 @@ const WEBHOOK_NODE_TYPES = new Set(['n8n-nodes-base.webhook']);
 const FORM_NODE_TYPES = new Set(['n8n-nodes-base.formTrigger', '@n8n/n8n-nodes-langchain.formTrigger']);
 const CHAT_NODE_TYPES = new Set(['@n8n/n8n-nodes-langchain.chatTrigger']);
 
-function describeEntrypoints(wf, origin) {
+function describeEntrypoints(wf, cfg) {
+  const { base, path: hook, testPath: hookTest } = cfg.webhook;
   const out = [];
   for (const node of wf.nodes || []) {
     const type = node.type || '';
@@ -1117,14 +1139,14 @@ function describeEntrypoints(wf, origin) {
     if (WEBHOOK_NODE_TYPES.has(type) && routePath) {
       out.push({
         kind: 'webhook', node: node.name, method: (p.httpMethod || 'GET').toUpperCase(),
-        production: `${origin}/webhook/${routePath}`, test: `${origin}/webhook-test/${routePath}`,
+        production: `${base}/${hook}/${routePath}`, test: `${base}/${hookTest}/${routePath}`,
         authentication: p.authentication && p.authentication !== 'none' ? p.authentication : undefined,
         disabled: node.disabled || undefined,
       });
     } else if (FORM_NODE_TYPES.has(type) && routePath) {
-      out.push({ kind: 'form', node: node.name, method: 'POST', production: `${origin}/form/${routePath}`, test: `${origin}/form-test/${routePath}`, disabled: node.disabled || undefined });
+      out.push({ kind: 'form', node: node.name, method: 'POST', production: `${base}/form/${routePath}`, test: `${base}/form-test/${routePath}`, disabled: node.disabled || undefined });
     } else if (CHAT_NODE_TYPES.has(type) && routePath) {
-      out.push({ kind: 'chat', node: node.name, method: 'POST', production: `${origin}/webhook/${routePath}/chat`, test: `${origin}/webhook-test/${routePath}/chat`, disabled: node.disabled || undefined });
+      out.push({ kind: 'chat', node: node.name, method: 'POST', production: `${base}/${hook}/${routePath}/chat`, test: `${base}/${hookTest}/${routePath}/chat`, disabled: node.disabled || undefined });
     } else if (/trigger$/i.test(type) || type.endsWith('.cron') || type.endsWith('.interval')) {
       out.push({ kind: 'non-http', node: node.name, type, note: 'fires on its own schedule/event — cannot be called over HTTP' });
     }
@@ -1136,7 +1158,7 @@ async function cmdTrigger(ctx) {
   const { cfg, flags, args } = ctx;
   const [ref] = args;
   const wf = await resolveWorkflow(cfg, ref);
-  const entrypoints = describeEntrypoints(wf, cfg.origin);
+  const entrypoints = describeEntrypoints(wf, cfg);
   const callable = entrypoints.filter((e) => e.kind !== 'non-http' && !e.disabled);
 
   if (flags['list-entrypoints'] || flags.raw) {
@@ -1175,7 +1197,26 @@ async function cmdTrigger(ctx) {
 
   log(`[trigger] ${method} ${url}`);
   // Deliberately unauthenticated: a webhook is a public entrypoint, the API key must not leak to it.
-  const res = await apiRequest(cfg, method, url, { body, headers, auth: false, raw: true });
+  let res;
+  try {
+    res = await apiRequest(cfg, method, url, { body, headers, auth: false, raw: true });
+  } catch (err) {
+    if (err.kind === 'notfound') {
+      throw new CliError('notfound', `the webhook at ${url} answered 404`, {
+        status: 404,
+        hint: useTest
+          ? 'a test webhook only exists while the editor is open on that workflow with "Listen for test event" pressed.'
+          : (wf.active
+            ? 'the workflow is active, so the path is probably wrong for this host: n8n can move the webhook '
+              + 'endpoints (N8N_ENDPOINT_WEBHOOK / N8N_ENDPOINT_WEBHOOK_TEST) and a reverse proxy can change the '
+              + 'base (N8N_WEBHOOK_URL). Override with --webhook-base / --webhook-path, or read the real URL off '
+              + 'the node in the n8n editor.'
+            : 'the workflow is inactive, so no production webhook is registered — activate it or use --test.'),
+        details: { url, webhookBase: cfg.webhook.base, webhookPath: useTest ? cfg.webhook.testPath : cfg.webhook.path },
+      });
+    }
+    throw err;
+  }
 
   let execution;
   if (flags.follow) {
@@ -1196,7 +1237,10 @@ async function cmdTrigger(ctx) {
     ok: true,
     command: 'trigger',
     workflow: { id: wf.id, name: wf.name, active: wf.active },
-    entrypoint: { node: target.node, kind: target.kind, url, method, mode: useTest ? 'test' : 'production' },
+    entrypoint: {
+      node: target.node, kind: target.kind, url, method, mode: useTest ? 'test' : 'production',
+      webhookBase: cfg.webhook.base,
+    },
     response: { status: res.status, body: res.body },
     execution,
   };
@@ -1285,7 +1329,11 @@ async function cmdPing(ctx) {
       api = { title: spec.info?.title, version: spec.info?.version, operations: specOperations(spec).length, source };
     } catch { api = null; }
   }
-  return { ok: true, command: 'ping', instance: cfg.origin, apiBase: cfg.api, keyPresent: Boolean(cfg.apiKey), api, features };
+  return {
+    ok: true, command: 'ping', instance: cfg.origin, apiBase: cfg.api,
+    webhookBase: `${cfg.webhook.base}/${cfg.webhook.path}` + (cfg.webhook.customised ? '' : ' (default)'),
+    keyPresent: Boolean(cfg.apiKey), api, features,
+  };
 }
 
 async function cmdCall(ctx) {
@@ -1459,7 +1507,7 @@ const HELP = {
   projects: 'list · create · update · delete',
   users: 'list · get',
   'test-runs': 'list · start · get · cases · cancel  (workflow evaluations)',
-  trigger: 'Run a workflow through its Webhook/Form/Chat entrypoint: `trigger <id-or-name> [--data JSON] [--test] [--follow] [--list-entrypoints]`.',
+  trigger: 'Run a workflow through its Webhook/Form/Chat entrypoint: `trigger <id-or-name> [--data JSON] [--test] [--follow] [--list-entrypoints]`. Webhook host/paths are configurable — see --webhook-base.',
   audit: 'Security audit report: `audit [--categories credentials,nodes] [--days 30]`.',
   insights: 'Instance insights summary: `insights [--start ISO] [--end ISO]`.',
   'source-control': 'pull  (requires --yes)',
@@ -1478,6 +1526,9 @@ const GLOBAL_FLAGS = {
   '--data / --file / --stdin': 'request body as inline JSON, a file, or piped JSON',
   '--query k=v': 'extra query parameter (repeatable, `call` only)',
   '--header k=v': 'extra header (repeatable, `call` and `trigger`)',
+  '--webhook-base <url>': 'webhook host when it differs from the API host (else $N8N_WEBHOOK_URL)',
+  '--webhook-path <seg>': 'production webhook segment (else $N8N_ENDPOINT_WEBHOOK, default "webhook")',
+  '--webhook-test-path <seg>': 'test webhook segment (else $N8N_ENDPOINT_WEBHOOK_TEST, default "webhook-test")',
   '--timeout <ms>': 'per-request timeout (default 60000)',
   '--debug': 'log HTTP details to stderr (the key is redacted)',
 };

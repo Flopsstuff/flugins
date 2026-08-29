@@ -278,7 +278,8 @@ handles both shapes.
 | Want | Reality |
 |---|---|
 | Run a workflow on demand | **No API endpoint exists.** Call its Webhook / Form / Chat trigger over plain HTTP (`trigger`), or use `POST /workflows/{id}/test-runs` where evaluations are configured. |
-| Webhook URLs | `<instance>/webhook/<path>` (production, needs the workflow **active**) and `<instance>/webhook-test/<path>` (only while the editor is listening). Forms use `/form/<path>`. |
+| Webhook URLs | `<base>/webhook/<path>` (production, needs the workflow **active**) and `<base>/webhook-test/<path>` (only while the editor is listening). Forms use `<base>/form/<path>`. |
+| Where `<base>` comes from | **Not necessarily the API host.** The host sets the segments with `N8N_ENDPOINT_WEBHOOK` / `N8N_ENDPOINT_WEBHOOK_TEST` (defaults `webhook` / `webhook-test`) and, behind a reverse proxy, the whole base with `N8N_WEBHOOK_URL` (`WEBHOOK_URL` is a deprecated alias since n8n 2.35.0). Override with `--webhook-base`, `--webhook-path`, `--webhook-test-path`; `ping` reports the base in use. |
 | Webhook auth | The webhook is **not** authenticated by the API key. Never send `X-N8N-API-KEY` to it; pass whatever the node's own auth expects. |
 | List node types | Not in the public API. Read them off existing workflows. |
 | Variables, projects, folders, roles, SSO/LDAP settings | Licence-gated. A Community instance answers **403 `Your license does not allow for feat:…`** — not an auth problem. |

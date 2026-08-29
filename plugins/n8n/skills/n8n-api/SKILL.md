@@ -102,10 +102,18 @@ the workflow's Webhook / Form / Chat node and calling that URL directly:
 - Production (`/webhook/<path>`) needs the workflow **active**; otherwise it 404s.
 - `--test` hits `/webhook-test/<path>`, which only answers while someone has the editor open with
   *Listen for test event* pressed.
+- **The webhook host is not always the API host.** n8n can move these endpoints
+  (`N8N_ENDPOINT_WEBHOOK`, `N8N_ENDPOINT_WEBHOOK_TEST`) and a reverse proxy can replace the base
+  entirely (`N8N_WEBHOOK_URL`, or the deprecated `WEBHOOK_URL`). The script reads those variables
+  from its own environment and accepts `--webhook-base <url>`, `--webhook-path <seg>` and
+  `--webhook-test-path <seg>`. `ping` prints the base it would use. If a webhook 404s on an
+  **active** workflow, the path is wrong for that host — read the real URL off the node in the
+  editor rather than guessing.
 - Schedule, Manual, Telegram and similar triggers cannot be fired over HTTP —
   `trigger <wf> --list-entrypoints` shows what a workflow actually exposes.
-- The webhook is a **public** entrypoint: the API key is deliberately not sent. If the node has its
-  own auth, pass it with `--header 'Authorization=…'`.
+- The webhook is a **public** entrypoint: the API key is deliberately not sent. A 401/403 from it
+  therefore means the *node's own* authentication rejected the call — pass it with
+  `--header 'Authorization=…'`, and don't go looking at the API key.
 - `--follow` polls for the resulting execution and returns its status.
 
 ## Diagnosing a broken automation

@@ -121,6 +121,7 @@ node "$S" workflows update <id> --file ./n8n-backup/my-flow.<id>.json --dry-run
 
 - **There is no "execute this workflow now" endpoint.** A workflow can only be run through a Webhook, Form or Chat trigger (that is what `trigger` does), or through `test-runs` where evaluations are set up. Schedule and Manual triggers cannot be fired over HTTP.
 - Production webhooks (`/webhook/<path>`) only answer while the workflow is **active**; `--test` targets `/webhook-test/<path>`, which needs the editor listening.
+- The webhook host is **not always the API host** — n8n moves these endpoints with `N8N_ENDPOINT_WEBHOOK` / `N8N_ENDPOINT_WEBHOOK_TEST`, and a reverse proxy replaces the base with `N8N_WEBHOOK_URL`. The client honours those variables and takes `--webhook-base` / `--webhook-path` / `--webhook-test-path`; `ping` shows which base it would use.
 - Variables, projects, folders, roles and SSO settings are **licence-gated** and return 403 on Community instances.
 - `limit` is capped at **250** server-side — use `--all`.
 - API keys are created in the UI only.
