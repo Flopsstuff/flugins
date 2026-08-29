@@ -1,11 +1,19 @@
 {
   "name": "n8n",
-  "version": "0.1.0",
-  "description": "Drive any n8n instance through its Public REST API — workflows, executions, credentials, data tables and every other v1 endpoint — via a zero-dependency Node client wrapped in a skill",
+  "version": "0.2.0",
+  "description": "Build and drive n8n workflows \u2014 author them with the official n8n MCP server and its Workflow SDK, and operate the instance through its Public REST API",
   "homepage": "https://github.com/Flopsstuff/flugins",
   "author": {
     "name": "Flop",
     "email": "flopspm@gmail.com"
   },
-  "keywords": ["n8n", "automation", "workflow", "rest-api", "webhook", "self-hosted", "executions"]
+  "keywords": [
+    "n8n",
+    "automation",
+    "workflow",
+    "rest-api",
+    "webhook",
+    "self-hosted",
+    "executions"
+  ]
 }

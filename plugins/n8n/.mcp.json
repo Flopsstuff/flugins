@@ -3,6 +3,13 @@
     "n8n-docs": {
       "type": "http",
       "url": "https://docs.n8n.io/~gitbook/mcp"
+    },
+    "n8n-local": {
+      "type": "http",
+      "url": "${N8N_MCP_URL}",
+      "headers": {
+        "Authorization": "Bearer ${N8N_MCP_TOKEN}"
+      }
     }
   }
 }

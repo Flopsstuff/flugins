@@ -1,6 +1,6 @@
 ---
 name: n8n-api
-description: Drive an n8n instance through its Public REST API — list, inspect, create, update, activate, archive and export workflows; read executions and diagnose why one failed; manage credentials, tags, data tables, projects and variables; run a workflow through its webhook; audit the instance. Use this skill whenever the user mentions n8n, an n8n workflow or webhook, asks why an automation failed or stopped running, wants to deploy/back up/migrate workflows between instances, or points at an n8n host. Drives a bundled zero-dependency Node client; no MCP server and no npm install needed.
+description: Drive an n8n instance through its Public REST API — list, inspect, create, update, activate, archive and export workflows; read executions and diagnose why one failed; manage credentials, tags, data tables, projects and variables; run a workflow through its webhook; audit the instance. Use this skill whenever the user wants to inspect, operate, troubleshoot or back up an existing n8n instance — asks what is running, why an automation failed or stopped, wants to activate/archive/export/migrate workflows, manage credentials or data tables, or points at an n8n host. To design or build a new workflow, or to add and rewire nodes, use the n8n-build skill instead. Drives a bundled zero-dependency Node client; no MCP server and no npm install needed.
 disable-model-invocation: false
 user-invocable: true
 allowed-tools: >-

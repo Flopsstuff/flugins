@@ -71,12 +71,12 @@
     {
       "name": "n8n",
       "source": "./plugins/n8n",
-      "description": "Drive any n8n instance through its Public REST API — workflows, executions, credentials, data tables, webhooks and instance audits",
+      "description": "Build n8n workflows with the official MCP server and drive any instance through its Public REST API — authoring, executions, credentials, data tables and webhooks",
       "author": {
         "name": "Flop",
         "email": "flopspm@gmail.com"
       },
-      "keywords": ["n8n", "automation", "workflow", "rest-api", "webhook", "self-hosted", "executions"]
+      "keywords": ["n8n", "automation", "workflow", "rest-api", "mcp", "ai-agent", "webhook", "self-hosted"]
     }
   ]
 }
