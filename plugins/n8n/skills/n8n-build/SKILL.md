@@ -33,6 +33,30 @@ versus **this session's connection dropped** (the endpoint answers, the tools do
 common on tunnelled instances and is fixed by the user running `/mcp` — say so explicitly instead
 of silently degrading.
 
+### Turning `n8n-local` on
+
+It is n8n's **own** MCP server, served by the instance at `<instance>/mcp-server/http`, and this
+plugin already declares it — it only needs two environment variables. If the tools are missing,
+walk the user through this rather than silently falling back:
+
+1. In n8n: **Settings → Instance-level MCP → Connect a client → API key**. Copy the Server URL and
+   the token. The token is shown **once**; afterwards only a redacted value, and rotating it is the
+   only way back.
+2. Export both, then restart Claude Code (a session that lost the connection cannot re-establish it
+   on its own — `/mcp` or a restart is required):
+
+```bash
+export N8N_MCP_URL=https://your-n8n.example.com/mcp-server/http
+export N8N_MCP_TOKEN=n8n_mcp_...
+```
+
+An OAuth flow exists as an alternative to the token —
+`claude mcp add --transport http n8n <instance>/mcp-server/http`, then `/mcp` to authorise.
+
+The skill works without any of this; the fallback path is real, not a stub. But node types,
+parameter schemas and validation all come from this server, so without it every node type and
+version is inference rather than fact — say so plainly instead of quietly guessing.
+
 Even with MCP up, four things only the REST client can do: **create credentials**, **triage a
 failed execution**, **back up a workflow before editing it**, and **call a production webhook with
 custom headers**.
@@ -209,7 +233,7 @@ so rather than spending silently.
 
 | Situation | Do this |
 |---|---|
-| No `mcp__n8n-local__*` tools at all | Say so plainly, offer the setup (`N8N_MCP_URL` + `N8N_MCP_TOKEN`, then `/mcp`), and build via `docs/workflow-json.md` + `n8n-api` |
+| No `mcp__n8n-local__*` tools at all | Say so plainly, offer the setup above (Settings → Instance-level MCP), and build via `docs/workflow-json.md` + `n8n-api` |
 | Tools vanish mid-build ("not connected") | Retry once with a cheap call. Still down: **do not rewrite the workflow** — convert it with the SDK→JSON map in `docs/workflow-json.md`, create it through `n8n-api`, and tell the user it went in **unvalidated and unpublished** |
 | Validation warnings | Blocking. Fix, re-validate |
 | Node type not found | Re-search with synonyms → `mcp__n8n-docs__searchDocumentation` → say honestly it is not on this instance and offer HTTP Request. **Never fabricate `n8n-nodes-base.X`** |
