@@ -47,6 +47,15 @@ Only the `spec` command works without a key.
 
 Ask in natural language — *"which n8n workflows are active?"*, *"why did the invoice workflow fail last night?"*, *"back up all my workflows"*, *"activate the GDPR workflow"*, *"run the intake webhook with this payload"* — and the skill activates automatically, picks the right endpoint, runs the bundled client, and reports the result.
 
+### Bundled MCP server
+
+The plugin ships an MCP server declaration (`plugins/n8n/.mcp.json`) pointing at the official
+[n8n documentation MCP server](https://docs.n8n.io/connect/connect-to-n8n-docs-mcp-server). It starts
+automatically when the plugin is enabled and appears as `plugin:n8n:n8n-docs`, giving Claude
+`searchDocumentation` and `getPage` over the live n8n docs — the same source this skill is written
+against. It is anonymous (no login) and read-only apart from `sendFeedback`, which reports a docs
+issue to the n8n team and is never called without your say-so.
+
 ### Configuration
 
 No plugin-specific configuration. The skill reads `N8N_URL` and `N8N_API_KEY` from the environment (or `--url` / `--api-key` flags). The instance's OpenAPI document is cached for 24 hours under `~/.cache/n8n-api/`; `spec --refresh` reloads it. The full endpoint reference lives in `skills/n8n-api/docs/api-reference.md` and is loaded on demand rather than into every session.

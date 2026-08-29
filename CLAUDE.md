@@ -268,6 +268,7 @@ This repository uses gitmoji (via `.gitpmoji/`). Common prefixes:
 - `n8n` — Drive any n8n instance through its Public REST API
   - Skills: `n8n-api` (model-invoked or user-invocable)
   - Features: Zero-dependency Node client over `/api/v1`, live OpenAPI introspection (`spec`), raw `call` escape hatch, cursor auto-pagination, read-only field stripping on workflow updates, execution failure triage, and `trigger` to run a workflow through its webhook
+  - Bundles an MCP server (`plugins/n8n/.mcp.json`) for the official n8n docs, loaded as `plugin:n8n:n8n-docs`
 
 Refer to `plugins/docs/` and `plugins/git/` as reference implementations for plugin structure.
 

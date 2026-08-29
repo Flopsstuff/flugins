@@ -149,6 +149,15 @@ acts on. `finished: false` with `status: "error"` is normal for a failed run.
 For the complete endpoint table, payload shapes and limits, read
 **`${CLAUDE_SKILL_DIR}/docs/api-reference.md`** on demand — not on every run.
 
+## Looking something up
+
+This plugin bundles the official **n8n docs MCP server** (`plugin:n8n:n8n-docs`), so
+`searchDocumentation` / `getPage` are available whenever it is enabled. Use them for product
+behaviour the API cannot tell you — node parameters, expression syntax, self-hosting variables —
+and use `spec` for what *this instance's* API actually exposes. Between them, don't answer n8n
+questions from memory. (`sendFeedback` reports a docs problem to the n8n team; only call it when
+the user asks.)
+
 ## Related tooling
 
 n8n also ships an official CLI (`npx @n8n/cli`, `n8n-cli skill install`) covering the common
