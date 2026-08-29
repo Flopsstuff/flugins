@@ -10,6 +10,7 @@ This catalog provides detailed documentation for all available plugins in the Fl
 - [Resolve CodeRabbit Plugin](resolve-coderabbit-plugin.md) - Walk through CodeRabbit inline PR comments, verify, fix, and batch-resolve
 - [Meshy Plugin](meshy-plugin.md) - Generate 3D models, textures, rigs and animations from text or images via the Meshy AI API
 - [Codex Review Plugin](codex-review-plugin.md) - Run a codex review against a base branch, triage each finding with you, and land every accepted fix as its own commit
+- [n8n Plugin](n8n-plugin.md) - Drive any n8n instance through its Public REST API: workflows, executions, credentials, data tables, webhooks and instance audits
 
 ## Extras
 

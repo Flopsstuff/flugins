@@ -265,6 +265,9 @@ This repository uses gitmoji (via `.gitpmoji/`). Common prefixes:
 - `resolve-coderabbit` — Walk through CodeRabbit inline PR comments with per-comment user approval, then batch push + reply + resolve
   - Skills: `resolve-coderabbit` (model-invoked or user-invocable)
   - Features: Per-comment verify-before-fix loop, one-commit-per-fix, unit-test gate, batched push with SHA-referenced replies and GraphQL thread resolves
+- `n8n` — Drive any n8n instance through its Public REST API
+  - Skills: `n8n-api` (model-invoked or user-invocable)
+  - Features: Zero-dependency Node client over `/api/v1`, live OpenAPI introspection (`spec`), raw `call` escape hatch, cursor auto-pagination, read-only field stripping on workflow updates, execution failure triage, and `trigger` to run a workflow through its webhook
 
 Refer to `plugins/docs/` and `plugins/git/` as reference implementations for plugin structure.
 

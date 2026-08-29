@@ -1,0 +1,11 @@
+{
+  "name": "n8n",
+  "version": "0.1.0",
+  "description": "Drive any n8n instance through its Public REST API — workflows, executions, credentials, data tables and every other v1 endpoint — via a zero-dependency Node client wrapped in a skill",
+  "homepage": "https://github.com/Flopsstuff/flugins",
+  "author": {
+    "name": "Flop",
+    "email": "flopspm@gmail.com"
+  },
+  "keywords": ["n8n", "automation", "workflow", "rest-api", "webhook", "self-hosted", "executions"]
+}
