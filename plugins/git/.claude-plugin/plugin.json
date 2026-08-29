@@ -1,11 +1,11 @@
 {
   "name": "git",
-  "version": "1.2.0",
-  "description": "Git workflow commands for Claude Code",
+  "version": "1.2.1",
+  "description": "Smart git workflow commands with intelligent conflict resolution",
   "homepage": "https://github.com/Flopsstuff/flugins",
   "author": {
     "name": "Flop",
     "email": "flopspm@gmail.com"
   },
-  "keywords": ["git", "version-control", "workflow"]
+  "keywords": ["git", "version-control", "merge", "rebase", "worktree", "squash", "workflow"]
 }

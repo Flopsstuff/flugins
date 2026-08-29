@@ -374,7 +374,7 @@ EOF
 
 ### 5. Update Marketplace
 
-Add your plugin to `.claude-plugin/marketplace.json`:
+Add your plugin to `.claude-plugin/marketplace.json`. Keep `description` and `keywords` **identical** to the ones in your `plugin.json` — the marketplace entry is what users read while browsing, the manifest is what they read once installed, and drift between the two is a documentation bug:
 
 ```json
 {
@@ -393,7 +393,20 @@ Add your plugin to `.claude-plugin/marketplace.json`:
 }
 ```
 
-### 6. Test Your Plugin
+### 6. Document Your Plugin
+
+Every plugin needs a catalog page and three registrations:
+
+1. Create `docs/plugin-catalog/your-plugin-name-plugin.md`. Open it with a header block mirroring `plugin.json` — name, description, author, version, keywords — then cover what the plugin does, installation, requirements (external CLIs, runtimes, environment variables), and every command and skill with usage examples.
+2. Add a bullet to `docs/plugin-catalog/index.md`.
+3. Register the page in the sidebar in `docs/.vitepress/config.mts` — the catalog index link alone does not put it in the navigation.
+4. Add a row to the plugin table in `README.md`, and document any environment variables in `.env.example`.
+
+Use VitePress container syntax for callouts (`::: tip`, `::: warning`, `::: danger` … `:::`); MkDocs-style `!!! note` blocks render as plain text. Verify the result with `npm run docs:build`.
+
+Whenever you later change the plugin, bump the version in `plugin.json` and update the `**Version:**` line on the catalog page to match.
+
+### 7. Test Your Plugin
 
 Test locally by adding the marketplace:
 
@@ -408,7 +421,7 @@ Test locally by adding the marketplace:
 /your-plugin-name:my-command
 ```
 
-### 7. Submit Pull Request
+### 8. Submit Pull Request
 
 1. Commit your changes
 2. Push to your fork

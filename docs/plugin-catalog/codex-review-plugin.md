@@ -2,7 +2,7 @@
 
 **Name:** `codex-review`
 
-**Description:** Run a codex code review against a base branch, triage every finding with the user, and land each accepted fix as its own verified commit
+**Description:** Run a codex code review against a base branch, then triage every finding with the user and land each accepted fix as its own verified commit
 
 **Author:** Flop (flopspm@gmail.com)
 

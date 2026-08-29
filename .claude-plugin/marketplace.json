@@ -31,7 +31,7 @@
     {
       "name": "ksef",
       "source": "./plugins/ksef",
-      "description": "Send and receive KSeF (Polish National e-Invoice System) invoices via the ksef CLI, with guided onboarding: install from npm, token setup, secure login",
+      "description": "Send and receive KSeF (Polish National e-Invoice System) invoices via the ksef CLI, with guided onboarding: install from npm, token setup, login",
       "author": {
         "name": "Flop",
         "email": "flopspm@gmail.com"
@@ -51,7 +51,7 @@
     {
       "name": "codex-review",
       "source": "./plugins/codex-review",
-      "description": "Run a codex code review against a base branch, triage every finding with the user, and land each accepted fix as its own verified commit",
+      "description": "Run a codex code review against a base branch, then triage every finding with the user and land each accepted fix as its own verified commit",
       "author": {
         "name": "Flop",
         "email": "flopspm@gmail.com"
@@ -61,7 +61,7 @@
     {
       "name": "meshy",
       "source": "./plugins/meshy",
-      "description": "Generate 3D models, textures, rigs and animations from text or images via the Meshy AI API",
+      "description": "Generate 3D models, textures, rigs and animations from text or images via the Meshy AI API — a zero-dependency Node client wrapped in a skill",
       "author": {
         "name": "Flop",
         "email": "flopspm@gmail.com"
@@ -71,12 +71,12 @@
     {
       "name": "n8n",
       "source": "./plugins/n8n",
-      "description": "Build n8n workflows with the official MCP server and drive any instance through its Public REST API — authoring, executions, credentials, data tables and webhooks",
+      "description": "Build and drive n8n workflows — author them with the official n8n MCP server and its Workflow SDK, and operate the instance through its Public REST API",
       "author": {
         "name": "Flop",
         "email": "flopspm@gmail.com"
       },
-      "keywords": ["n8n", "automation", "workflow", "rest-api", "mcp", "ai-agent", "webhook", "self-hosted"]
+      "keywords": ["n8n", "automation", "workflow", "rest-api", "mcp", "ai-agent", "webhook", "executions", "self-hosted"]
     }
   ]
 }

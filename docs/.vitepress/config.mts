@@ -40,6 +40,12 @@ export default defineConfig({
             { text: 'Codex Review Plugin', link: '/plugin-catalog/codex-review-plugin' },
             { text: 'n8n Plugin', link: '/plugin-catalog/n8n-plugin' }
           ]
+        },
+        {
+          text: 'Extras',
+          items: [
+            { text: 'Statusline', link: '/plugin-catalog/statusline' }
+          ]
         }
       ],
       '/contribution/': [

@@ -2,15 +2,15 @@
 
 **Name:** `n8n`
 
-**Description:** Build n8n workflows with the official MCP server, and drive any instance through its Public REST API
+**Description:** Build and drive n8n workflows — author them with the official n8n MCP server and its Workflow SDK, and operate the instance through its Public REST API
 
 **Author:** Flop (flopspm@gmail.com)
 
-**Version:** 0.2.0
+**Version:** 0.2.1
 
-**Keywords:** n8n, automation, workflow, rest-api, mcp, ai-agent, webhook, self-hosted
+**Keywords:** n8n, automation, workflow, rest-api, mcp, ai-agent, webhook, executions, self-hosted
 
-The n8n plugin gives Claude Code full control of an [n8n](https://n8n.io) instance through its **Public REST API** (`/api/v1`), using a **single zero-dependency Node script** (`n8n-api.mjs`) wrapped in a model-invoked skill. No MCP server, no `npm install`, no build step — just Node 18+.
+The n8n plugin covers both halves of the job. **Authoring** goes through `n8n-build`, which prefers the official n8n MCP servers bundled with the plugin (instance Workflow SDK + documentation) and falls back to hand-written workflow JSON when they are unavailable. **Operating** goes through `n8n-api`, which drives an [n8n](https://n8n.io) instance's **Public REST API** (`/api/v1`) from a **single zero-dependency Node script** (`n8n-api.mjs`) — no `npm install`, no build step, just Node 18+.
 
 Beyond the usual CRUD, the client covers what generic API wrappers usually miss: it reads the target instance's **own OpenAPI document** so it stays correct across n8n versions, follows cursor pagination automatically, strips the read-only fields that make workflow updates fail with HTTP 400, extracts the actual failure message and node out of a broken execution, and can **run a workflow through its webhook** — something the REST API itself cannot do.
 

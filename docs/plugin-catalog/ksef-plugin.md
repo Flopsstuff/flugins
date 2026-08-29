@@ -6,7 +6,7 @@
 
 **Author:** Flop (flopspm@gmail.com)
 
-**Version:** 0.1.0
+**Version:** 0.1.1
 
 **Keywords:** ksef, e-invoice, faktura, poland, invoice, cli, fa3, upo
 
@@ -19,6 +19,8 @@ claude plugin install ksef@flugins
 ```
 
 **Important:** After installing the plugin, restart Claude Code to activate skills.
+
+**Tip:** Enable auto-update via `/plugin` → **Installed** → select the plugin → enable auto-update.
 
 ## Requirements
 

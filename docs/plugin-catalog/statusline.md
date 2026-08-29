@@ -8,12 +8,13 @@
 
 **Keywords:** statusline, status-line, git, pr, context-window, effort
 
-!!! note "Not a marketplace plugin"
-    Claude Code statuslines are configured through the `statusLine` entry in
-    `settings.json`, not through a plugin. So this ships as a standalone bash
-    script rather than a `claude plugin install` target. The source lives in
-    [`statusline/`](https://github.com/Flopsstuff/flugins/tree/main/statusline)
-    in the repository.
+::: warning Not a marketplace plugin
+Claude Code statuslines are configured through the `statusLine` entry in
+`settings.json`, not through a plugin. So this ships as a standalone bash
+script rather than a `claude plugin install` target. The source lives in
+[`statusline/`](https://github.com/Flopsstuff/flugins/tree/main/statusline)
+in the repository.
+:::
 
 The Statusline script renders a compact, information-dense status line for
 Claude Code. It has no plugin dependencies — a single bash script reading the

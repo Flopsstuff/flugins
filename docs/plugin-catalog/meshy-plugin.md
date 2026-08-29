@@ -2,7 +2,7 @@
 
 **Name:** `meshy`
 
-**Description:** Generate 3D models, textures, rigs and animations from text or images via the Meshy AI API
+**Description:** Generate 3D models, textures, rigs and animations from text or images via the Meshy AI API — a zero-dependency Node client wrapped in a skill
 
 **Author:** Flop (flopspm@gmail.com)
 

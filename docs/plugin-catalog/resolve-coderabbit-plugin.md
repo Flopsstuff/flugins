@@ -6,7 +6,7 @@
 
 **Author:** Flop (flopspm@gmail.com)
 
-**Version:** 0.1.1
+**Version:** 0.1.2
 
 **Keywords:** review, coderabbit, github, pr, pull-request, bot-comments
 

@@ -6,7 +6,7 @@
 
 **Author:** Flop (flopspm@gmail.com)
 
-**Version:** 1.2.0
+**Version:** 1.2.1
 
 **Keywords:** git, version-control, merge, rebase, worktree, squash, workflow
 
