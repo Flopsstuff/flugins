@@ -510,11 +510,18 @@ function project(kind, items, flags) {
  * ------------------------------------------------------------------ */
 
 function cachePath(cfg) {
-  const host = new URL(cfg.origin).host.replace(/[^a-z0-9.-]/gi, '_');
+  // Keyed on the whole base, not just the host: two instances can share a host under different
+  // paths (…/team-a, …/team-b) and run different n8n versions, so a host-only key serves one
+  // instance's spec to the other for 24 hours.
+  const u = new URL(cfg.origin);
+  const key = `${u.protocol.replace(':', '')}_${u.host}${u.pathname}`
+    .replace(/[^a-z0-9._-]/gi, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '');
   const dir = process.env.XDG_CACHE_HOME
     ? path.join(process.env.XDG_CACHE_HOME, 'n8n-api')
     : path.join(homedir() || tmpdir(), '.cache', 'n8n-api');
-  return path.join(dir, `${host}.openapi.json`);
+  return path.join(dir, `${key}.openapi.json`);
 }
 
 /** Pull the JSON spec out of the Swagger UI bootstrap script (no YAML parser needed). */
