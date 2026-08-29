@@ -51,3 +51,6 @@ dev-debug.log
 
 # Local Meshy plugin test artifacts
 .tmp-meshy-test/
+
+# Local reference material (not part of the repo)
+/refs/
