@@ -30,7 +30,7 @@ const BOOLEAN_FLAGS = new Set([
   'all', 'full', 'pretty', 'dry-run', 'yes', 'debug', 'help', 'version', 'quiet',
   'active', 'inactive', 'archived', 'include-archived', 'include-data', 'include-role',
   'stdin', 'refresh', 'force', 'test', 'raw', 'ignore-data-size-limit', 'redact',
-  'exclude-pinned-data', 'no-retry', 'compact', 'follow', 'list-entrypoints', 'schemas', 'no-spec', 'json',
+  'exclude-pinned-data', 'no-retry', 'retry-unsafe', 'compact', 'follow', 'list-entrypoints', 'schemas', 'no-spec', 'json',
 ]);
 // Flags that may be repeated and collect into an array.
 const REPEATABLE_FLAGS = new Set(['query', 'header', 'set', 'param']);
@@ -144,6 +144,7 @@ function resolveConfig(flags) {
     timeout: Number(flags.timeout || env.N8N_API_TIMEOUT || 60000),
     debug: Boolean(flags.debug),
     retry: !flags['no-retry'],
+    retryUnsafe: Boolean(flags['retry-unsafe']),
   };
 }
 
@@ -237,6 +238,10 @@ async function apiRequest(cfg, method, endpoint, { query, body, headers, auth = 
     else { payload = JSON.stringify(body); hdrs['content-type'] = 'application/json'; }
   }
 
+  // A retried POST/PATCH can apply twice: the first attempt may have succeeded server-side and
+  // only lost its response. Retry those on 429 alone, where nothing was applied.
+  const idempotent = ['GET', 'HEAD', 'PUT', 'DELETE', 'OPTIONS'].includes(method);
+  const mayRetryFailures = idempotent || cfg.retryUnsafe;
   const maxAttempts = cfg.retry ? 4 : 1;
   let lastErr;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -255,7 +260,7 @@ async function apiRequest(cfg, method, endpoint, { query, body, headers, auth = 
 
       if (res.ok) return { status: res.status, headers: res.headers, body: parsed };
 
-      const retryable = res.status === 429 || res.status >= 500;
+      const retryable = res.status === 429 || (res.status >= 500 && mayRetryFailures);
       if (retryable && attempt < maxAttempts) {
         const retryAfter = Number(res.headers.get('retry-after'));
         const wait = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 500 * 2 ** (attempt - 1);
@@ -279,7 +284,8 @@ async function apiRequest(cfg, method, endpoint, { query, body, headers, auth = 
           hint: 'check N8N_URL, DNS, and that the instance is reachable from here.',
         });
       }
-      if (attempt < maxAttempts) { await sleep(500 * 2 ** (attempt - 1)); continue; }
+      // A network error gives no way to tell "never sent" from "applied, reply lost".
+      if (attempt < maxAttempts && mayRetryFailures) { await sleep(500 * 2 ** (attempt - 1)); continue; }
       throw lastErr;
     } finally {
       clearTimeout(timer);
@@ -1570,6 +1576,7 @@ const GLOBAL_FLAGS = {
   '--webhook-path <seg>': 'production webhook segment (else $N8N_ENDPOINT_WEBHOOK, default "webhook")',
   '--webhook-test-path <seg>': 'test webhook segment (else $N8N_ENDPOINT_WEBHOOK_TEST, default "webhook-test")',
   '--timeout <ms>': 'per-request timeout (default 60000)',
+  '--retry-unsafe': 'also retry POST/PATCH on 5xx and network errors (may duplicate the operation)',
   '--debug': 'log HTTP details to stderr (the key is redacted)',
 };
 
