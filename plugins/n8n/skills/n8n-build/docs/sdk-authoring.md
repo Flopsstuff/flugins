@@ -27,7 +27,7 @@ Declare every node as a `const` first, then wire them. The export is the workflo
 const start = trigger({ type: 'n8n-nodes-base.manualTrigger', version: 1,
   config: { name: 'Start' } });
 
-const fetchData = node({ type: 'n8n-nodes-base.httpRequest', version: 4.3,
+const fetchData = node({ type: 'n8n-nodes-base.httpRequest', version: 4.5,
   config: { name: 'Fetch Data', parameters: { method: 'GET', url: 'https://api.example.com' } } });
 
 export default workflow('daily-sync', 'Daily sync')
@@ -85,7 +85,7 @@ instead of `$json` where the SDK needs a resolved reference.
 ## Error branches
 
 ```javascript
-const call = node({ type: 'n8n-nodes-base.httpRequest', version: 4.3,
+const call = node({ type: 'n8n-nodes-base.httpRequest', version: 4.5,
   config: { name: 'Call API', parameters: { /* … */ },
             onError: 'continueErrorOutput', retryOnFail: true, maxTries: 3 } });
 
@@ -104,7 +104,7 @@ const model = languageModel({ type: '@n8n/n8n-nodes-langchain.lmChatOpenAi', ver
   config: { name: 'Model', parameters: { model: 'gpt-4.1-mini' },
             credentials: { openAiApi: newCredential('OpenAI') } } });
 
-const mem = memory({ type: '@n8n/n8n-nodes-langchain.memoryBufferWindow', version: 1.3,
+const mem = memory({ type: '@n8n/n8n-nodes-langchain.memoryBufferWindow', version: 1.4,
   config: { name: 'Memory', parameters: { sessionKey: expr('{{ $json.chatId }}') } } });
 
 const search = tool({ type: '@n8n/n8n-nodes-langchain.toolHttpRequest', version: 1.1,
@@ -155,12 +155,60 @@ carry no runtime meaning.
 
 ## House rules the SDK enforces
 
-- Give every node `output` sample data where the reference asks for it — the validator uses it.
+- **Every node must carry an `output` property with sample data** — downstream expressions are
+  resolved against it. This is not optional.
+- **Never reuse a builder name as a variable**: `const node = node({…})` breaks the file. Give each
+  handle a descriptive name.
+- **Name nodes for what they do**: "Fetch Weather Data", "Check Temperature" — not "HTTP Request",
+  "Set", "If".
+- `placeholder('hint')` goes **directly** as the parameter value, never inside `expr()`, an object
+  or an array.
 - No comments in the code; use `sticky()`.
-- No backticks in `expr()`.
-- Node versions come from `search_nodes`, **not** from the examples in the SDK reference: those are
+- No backticks in `expr()`; multiline is string concatenation with every variable **inside** the
+  `{{ }}`:
+  - wrong: `expr('Digest - ' + $now.toFormat('MMMM d'))` — `$now` is outside the braces
+  - right: `expr('Digest - {{ $now.toFormat("MMMM d") }}')`
+- Use double quotes for a string containing an apostrophe.
+- **Always `newCredential('Name')`** — never a fake id, never `mock-*`, never a hardcoded key. If
+  the build sheet lists existing credentials, copy an id from it exactly or use `newCredential()`.
+- Node versions come from `search_nodes`, **not** from examples in the SDK reference: those are
   pinned and drift behind the instance (a doc example showed Slack 2.3 while the instance served
   2.7).
+
+## Four traps the SDK reference calls out by name
+
+**1. Do not fake items to "keep the chain alive."** When a query returns zero items, downstream
+nodes simply do not run — for a scheduled workflow that is the correct "nothing to do" signal.
+Adding `alwaysOutputData: true` to force an empty `{}` through is what produces `undefined` reads,
+`GET undefined` calls and Code-node crashes. Use it only when a branch genuinely must run on the
+empty case, and pair it with an IF that checks for that case. Likewise, **no IF gate before a
+loop** — `splitInBatches`, per-item nodes and `filter` already no-op on empty input.
+
+**2. `executeOnce: true` for nodes that should run once, not per item.** A summary notification, a
+report, an API call that does not need repeating. Duplicate messages almost always mean a missing
+`executeOnce`.
+
+**3. Pick the right control-flow primitive.**
+
+| Need | Use |
+|---|---|
+| Per-item work with side effects | `splitInBatches` with `batchSize: 1`, looped back via `nextBatch` |
+| Drop items that fail a predicate | `filter` — emits 0 items and the chain stops cleanly |
+| Two exclusive paths that both act | `ifElse` with `onTrue` / `onFalse` |
+| Many exclusive paths keyed off a value | `switchCase` with `onCase(n, …)` |
+
+A Filter or IF only *selects*; it performs no action. If the user asked to archive, delete or send
+for matching items, the action node still has to be wired on the matching path. Nesting works:
+`ifNode.onTrue(loopBuilder)`, `splitInBatches(sib).onEachBatch(ifElseBuilder)`.
+
+**4. Inserting a node into an existing connection changes what the next node sees.** A node reads
+only its immediate predecessor. Slip C between A and B and B now reads C's output — `$json` and
+auto-mapped fields silently switch source. Write nodes are the sharp edge: they output the **API
+response** (ids, `ok` flags), not the data that went in.
+
+- wrong: `code.to(ensureSheet).to(appendRows)` — appendRows maps the create-sheet response
+- right: `trigger.to(ensureSheet).to(code).to(appendRows)`, or have the downstream node read
+  `$('Data Node').item.json.field` explicitly
 
 ## After writing
 

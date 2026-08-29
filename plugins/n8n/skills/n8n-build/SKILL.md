@@ -99,7 +99,7 @@ The MCP builds workflows from TypeScript, not JSON. What you need on every build
 const start = trigger({ type: 'n8n-nodes-base.scheduleTrigger', version: 1.2,
   config: { name: 'Every morning', parameters: { rule: { interval: [{ triggerAtHour: 8 }] } } } });
 
-const fetch = node({ type: 'n8n-nodes-base.httpRequest', version: 4.3,
+const fetch = node({ type: 'n8n-nodes-base.httpRequest', version: 4.5,
   config: { name: 'Fetch', parameters: { method: 'GET', url: 'https://api.example.com/items' } } });
 
 export default workflow('daily-digest', 'Daily digest').add(start).to(fetch);
@@ -137,8 +137,9 @@ Check every one of these before validating. They are the difference between a wo
 and one that looks right and silently does nothing.
 
 - **AI wires:** `ai_languageModel`, `ai_memory`, `ai_tool`, `ai_outputParser`, `ai_embedding`,
-  `ai_document`, `ai_textSplitter`. These strings appear **nowhere in the public docs**. The
-  **model node is the source and the agent is the target** — the arrow points at the agent.
+  `ai_document`, `ai_textSplitter`, `ai_vectorStore` (full list in `docs/workflow-json.md`). The
+  **sub-node is the source and the root node is the target** — the arrow points at the agent, not
+  away from it. Docs list these strings on exactly one page, and it is not a cluster-node page.
 - **Loop Over Items / SplitInBatches: output `0` is `done`, output `1` is `loop`.** Swapping them
   is the single most common wiring bug.
 - **Webhook data is `{ headers, params, query, body }`** — write `{{ $json.body.city }}`, never
@@ -151,7 +152,7 @@ and one that looks right and silently does nothing.
   `.last()` or `.all()[i]`.
 - **AI sub-nodes resolve expressions against item 0 only.** Root nodes iterate; sub-nodes do not.
 - **An Agent needs a field literally named `chatInput`** when its prompt is "take from previous
-  node", and **at least one tool sub-node**. A Chat Trigger reads the reply from a field named
+  node", and **a chat model sub-node** (that one is mandatory; tools are a design choice). A Chat Trigger reads the reply from a field named
   `output` or `text` — any other name returns the whole object.
 - **`onError`, not `continueOnFail`** (deprecated). Values: `stopWorkflow`, `continueRegularOutput`,
   `continueErrorOutput`.
@@ -169,7 +170,7 @@ field to a warning. So:
    - Loop Over Items outputs the right way round (`done` = 0)?
    - every credential id present in `list_credentials`?
    - webhook expressions going through `$json.body`?
-   - agent fed a `chatInput` and at least one tool?
+   - agent has a chat model attached, a `chatInput` (or `promptType: define`) and a system message?
    - anything downstream of Respond to Webhook that expects more than item 0?
 3. Two failed correction rounds → stop, show the graph and name the exact blocker. Do not keep
    guessing.

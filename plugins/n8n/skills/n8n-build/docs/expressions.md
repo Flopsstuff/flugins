@@ -28,7 +28,7 @@ Multi-statement logic needs an IIFE — there is no `;` sequencing at top level:
 `$pageCount` · `$request` · `$response`
 
 **`$node["Name"]` and `$items()` are legacy** and absent from the current reference. Write
-`$('Name')`.
+`$('Name')`. `$getPairedItem` is removed in n8n 3.0.
 
 ## Referencing another node
 
@@ -47,6 +47,8 @@ Multi-statement logic needs an IIFE — there is no `;` sequencing at top level:
   ambiguous there. Use `.first()`, `.last()` or `.all()[i]`.
 - **"Referenced node is unexecuted"** means the branch never ran. Guard with `$('X').isExecuted`.
 - Binary is an object keyed by property name: `$('HTTP Request').item.binary.data.fileName`.
+- **Loop state** lives on `.context`: `{{ $('Loop Over Items').context['noItemsLeft'] }}` tells you
+  the loop is finished, `context['currentRunIndex']` which pass you are on.
 
 ## Webhook data
 
@@ -70,8 +72,9 @@ for every invocation.
 
 ## Dates
 
-`$now` and `$today` are Luxon `DateTime`, in the workflow timezone (`settings.timezone`, else the
-instance's, else `America/New_York`).
+`$now` and `$today` are Luxon `DateTime`. `$now` uses the **workflow** timezone; `$today` uses the
+**instance** timezone unless the workflow overrides it. Both fall back workflow → instance →
+`America/New_York`.
 
 ```
 {{ $now.minus({ days: 7 }).toISO() }}
@@ -109,10 +112,24 @@ return { json: { ...$input.item.json, flagged: $input.item.json.total > 100 } };
 - Returning a bare object or array of plain objects **works but drops item linking** — downstream
   `.item` then fails. Prefer explicit `{ json: … }`.
 - In the Code node, `$('Node').itemMatching(i)` replaces `.item`.
-- No `require`, no network in Python mode, and JavaScript is the better-supported option — the
-  Python mode ships without external libraries.
-- `$helpers.httpRequest(...)` is available in JS for ad-hoc calls, but a real HTTP Request node is
-  easier to debug and retry.
+- **No credentials.** `$getCredentials` does not exist in a Code node. Put the secret in a
+  credential and let a real node use it, or use an expression in a credential field.
+- **Expressions are single-line.** Multi-statement logic needs the IIFE above.
+- **n8n's custom helpers do not exist in the Code node** — `$if()`, `$ifEmpty()`, `$jmespath()`,
+  and Luxon conveniences like `DateTime.format()` / `.plus(amount, unit)` are expression-only.
+  Write plain JavaScript instead.
+- **The sandbox has no network access.** `fetch()`, `axios`, `XMLHttpRequest` and `require` of any
+  http module are unavailable and fail at runtime. Never make an HTTP call from a Code node — use
+  an HTTP Request node and process its output.
+- **`require` is blocked** unless a self-hosted instance opts in via `NODE_FUNCTION_ALLOW_BUILTIN` /
+  `NODE_FUNCTION_ALLOW_EXTERNAL`; n8n Cloud exposes only `crypto` and `moment`.
+- **Python is native now** (task runners; the old Pyodide mode is gone in n8n 2): only `_items` in
+  all-items mode and `_item` per item, bracket access notation only, and no libraries on Cloud.
+  JavaScript remains the better-supported choice.
+- Reach for the Code node **last**. It is sandboxed and slower than native nodes, and most of what
+  people write in it has a dedicated node: `set` (reshape fields), `filter` (drop items), `if` /
+  `switch` (route), `splitOut` (array → items), `aggregate` (items → one), `summarize` (pivot),
+  `removeDuplicates`, `limit`, `dateTime`. Keep it for genuinely multi-step algorithms.
 
 ## Where expressions do not go
 

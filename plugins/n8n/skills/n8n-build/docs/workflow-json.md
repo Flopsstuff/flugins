@@ -5,18 +5,21 @@ API accepts (`POST /workflows`, `PUT /workflows/{id}`).
 
 ## Required and forbidden
 
-`name`, `nodes`, `connections`, `settings` are **required**. Send anything read-only and the API
-answers 400:
+`name`, `nodes`, `connections`, `settings` are **required**. These ten are marked read-only in the
+Public API schema and cause a 400 if sent back:
 
 ```
-id · active · createdAt · updatedAt · isArchived · versionId · triggerCount
-meta · tags · shared · activeVersion · activeVersionId · sourceWorkflowId · versionCounter
+id · active · createdAt · updatedAt · isArchived · versionId · triggerCount · meta · tags · activeVersion
 ```
+
+A newer instance may also return fields absent from the published schema — this one adds
+`activeVersionId`, `sourceWorkflowId`, `versionCounter`. The schema is `additionalProperties:
+false`, so those are rejected as *unknown*, which fails just the same. Strip anything a GET
+returned that is not in the accepted list below.
 
 Also accepted: `description`, `staticData`, `pinData`, `nodeGroups`, `parentFolderId`, and on
-create only `projectId`. A `null` for these is rejected — omit the key instead. The one exception
-is `parentFolderId`, where `null` means "move to the project root" and omitting it means "leave the
-folder alone".
+create `projectId`. `staticData` and `pinData` are nullable; `parentFolderId` is nullable **with
+meaning** — `null` moves the workflow to the project root, omitting it leaves the folder alone.
 
 `n8n-api`'s `workflows create` / `workflows update` strip all of this for you, so a workflow fetched
 with `workflows get` can be edited and sent straight back.
@@ -71,27 +74,40 @@ is an array of targets (fan-out). An unused output is `[]`, not omitted.
   branch must lead back to the loop node.
 - **Switch** in Rules mode: one output per rule, in rule order; the fallback output is last if
   enabled.
+- **Respond to Webhook** only works when the Webhook node sets `responseMode: "responseNode"`.
+  It responds from the **first incoming item** — including inside expressions — so aggregate first
+  (Aggregate → "All Item Data") when the reply needs every item. It has an optional second output,
+  *Enable Response Output Branch*, for continuing the flow after replying.
 - **Merge**: fan-in, so the *targets* carry `index: 0` and `index: 1` — the index is the **input**
   number on the merge node, not the output of the source.
 
 ## AI sub-node wires
 
-These connection type names are **not documented anywhere on docs.n8n.io**. They are the difference
-between an agent that runs and one that reports no model attached.
+The full set of connection type names, and the only place docs.n8n.io lists them — on the
+LangChain Code node page, not on any cluster-node page:
+https://docs.n8n.io/build/code-in-n8n/use-built-in-shortcuts/langchain-code-node
+
+```
+ai_agent · ai_chain · ai_document · ai_embedding · ai_languageModel · ai_memory
+ai_outputParser · ai_retriever · ai_textSplitter · ai_tool · ai_vectorRetriever · ai_vectorStore
+```
+
+The ones you will actually wire:
 
 | Wire | Attaches |
 |---|---|
 | `ai_languageModel` | chat model → agent / chain |
-| `ai_memory` | memory → agent / chat trigger |
+| `ai_memory` | memory → **agent only** (n8n chains do not support memory) |
 | `ai_tool` | tool → agent |
 | `ai_outputParser` | structured output parser → agent / chain |
 | `ai_embedding` | embeddings → vector store |
 | `ai_document` | document loader → vector store |
 | `ai_textSplitter` | text splitter → document loader |
 | `ai_retriever` | retriever → chain |
+| `ai_vectorStore` | vector store (mode `retrieve`) → retriever / chain |
 
-**Direction is the trap: the sub-node is the source, the root node is the target.** Verified on a
-live instance:
+**Direction is the trap: the sub-node is the source, the root node is the target.** The docs name
+the wires but not their direction; this was verified against a live instance:
 
 ```json
 "Model 1": { "ai_languageModel": [[{ "node": "Agent 1", "type": "ai_languageModel", "index": 0 }]] }
@@ -114,7 +130,10 @@ each sub-node gets its own top-level entry in `connections` pointing at the agen
 | `saveDataErrorExecution` / `saveDataSuccessExecution` | `"all"` or `"none"`. `"none"` for errors means no `execution.url` in error notifications |
 | `executionTimeout` | Seconds, max 3600 |
 | `callerPolicy` | Who may call this as a sub-workflow. Default `workflowsFromSameOwner`; `any` is deprecated |
-| `availableInMCP` | Exposes the workflow as a tool on the instance MCP server. Needs the workflow published with a webhook trigger |
+| `saveManualExecutions` / `saveExecutionProgress` | Booleans. `saveExecutionProgress` decides whether a failed run can be resumed at all |
+| `redactionPolicy` | `none` / `non-manual` / `manual-only` / `all` — redacts stored execution data |
+| `callerIds` | Comma-separated workflow ids. **Required** when `callerPolicy` is `workflowsFromAList` |
+| `availableInMCP` | Exposes the workflow as a tool on the instance MCP server. Needs it published with a webhook, form, schedule or chat trigger |
 | `binaryMode`, `credentialResolverId` | Derived — anything you send is ignored |
 
 ## SDK construct → JSON

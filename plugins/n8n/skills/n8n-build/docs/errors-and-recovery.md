@@ -37,7 +37,8 @@ When a failure must be loud, use `n8n-nodes-base.stopAndError`.
 ## Per-node error branch — a two-step setup
 
 Setting `onError: "continueErrorOutput"` alone does nothing visible: it creates a second output that
-is not connected. The error path exists only once you also wire it:
+is not connected. The error path exists only once you also wire it. The docs describe the setting
+but never name the JSON key — `error`, alongside `main`, confirmed against a live instance:
 
 ```json
 "Fetch orders": {

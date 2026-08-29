@@ -44,7 +44,7 @@ cleanly and fails at run time.
 | Form Trigger | ✅ | `/form/<path>`; output keys are **field names**, not labels |
 | Chat Trigger | ✅ | Public or embedded; one execution per message |
 | MCP Server Trigger | ✅ | Exposes the workflow as an MCP tool |
-| Schedule Trigger | ❌ | Cron takes **6 fields** (leading seconds). Must be published. Timezone: workflow → instance → `America/New_York` |
+| Schedule Trigger | ❌ | Cron takes the usual 5 fields plus an **optional** leading seconds field (6 total). Must be published. Timezone: workflow → instance → `America/New_York` |
 | Manual Trigger | ❌ | Editor only, and only one per workflow |
 | Error Trigger | ❌ | Fires when a workflow naming this one as `errorWorkflow` fails |
 | Execute Sub-workflow Trigger | ❌ | Called by another workflow. Input modes: define fields / JSON example / accept all |

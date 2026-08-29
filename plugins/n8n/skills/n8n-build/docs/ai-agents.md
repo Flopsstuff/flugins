@@ -16,6 +16,35 @@ Wire names and the direction rule live in `workflow-json.md` — not repeated he
 A chain with no tools is cheaper and far more predictable than an agent. Reach for the agent only
 when tool selection is the point.
 
+## The AI node families
+
+n8n models LangChain as **cluster nodes**: one root node plus sub-nodes.
+https://docs.n8n.io/build/integrate-ai/langchain-in-n8n
+
+| Category | Kind | Examples |
+|---|---|---|
+| Chain | **root** | Basic LLM Chain, Question and Answer Chain, Summarization Chain |
+| Agent | **root** | AI Agent |
+| Vector store | **root** | Pinecone, Qdrant, Simple Vector Store |
+| Language model | sub | OpenAI Chat Model, Anthropic Chat Model, Ollama Chat Model |
+| Memory | sub | Simple Memory, Postgres Chat Memory, Redis Chat Memory |
+| Tool | sub | Call n8n Workflow Tool, Code Tool, Wikipedia, HTTP Request Tool |
+| Retriever | sub | Vector Store Retriever, Workflow Retriever |
+| Embeddings | sub | Embeddings OpenAI, Embeddings Cohere |
+| Document loader | sub | Default Data Loader, GitHub Document Loader |
+| Output parser | sub | Structured Output Parser (Auto-fixing is deprecated) |
+| Text splitter | sub | Recursive Character Text Splitter, Token Splitter |
+
+Two more that sit outside the table: **Chat Trigger** starts a workflow from a chat message, and
+**LangChain Code** can be wired as an app node, a root node or a sub-node depending on which
+connectors you configure — the escape hatch when no dedicated node exists.
+
+A vector store is a *root* node, but in mode `retrieve` it becomes a sub-node for a chain, and in
+mode `retrieve-as-tool` it becomes a tool for an agent. That mode switch is how RAG is wired.
+
+The lists above are not exhaustive — the instance is the authority. `search_nodes` with
+`usage: "agentTool"` returns exactly what can attach to an agent on *this* instance.
+
 ## The cluster
 
 A root node plus sub-nodes attached by `ai_*` connections. In the SDK they go in `config.subnodes`;
@@ -26,8 +55,16 @@ lmChatOpenAi ──ai_languageModel──▶ agent ◀──ai_tool── toolWo
 memoryBufferWindow ──ai_memory──▶ agent ◀──ai_tool── toolHttpRequest
 ```
 
+**Give the agent a system message.** Put standing instructions in
+`options.systemMessage`, not in the per-run prompt — the validator flags an agent without one
+(`AGENT_NO_SYSTEM_MESSAGE`). The prompt carries the request; the system message carries the role,
+the constraints and the output contract.
+
 **Requirements that will otherwise bite:**
-- An Agent needs **at least one tool**. Zero tools is a configuration error.
+- An Agent needs **a chat model** — that is the sub-node the docs call out as mandatory, and its
+  absence is the error you will actually hit.
+- Tools are not formally required, but an agent without them is just a chain with extra latency:
+  use `chainLlm` instead.
 - The agent-type setting is deprecated (everything is a Tools Agent); v1 of the node is removed in
   n8n 3.0 — use the current `typeVersion` from `search_nodes`.
 - Exactly one chat model per root node.
@@ -45,10 +82,12 @@ a chat), or add a Set node producing `chatInput`.
 | Tool node | Use for |
 |---|---|
 | `toolWorkflow` | Call another workflow — the reusable, testable option |
-| `toolHttpRequest` | A single REST call |
+| `toolHttpRequest`, or `httpRequestTool` | A single REST call. Confirm which exists on the instance with `search_nodes(usage: "agentTool")` |
 | `toolCode` | Deterministic computation, written by you |
 | `toolCalculator`, `toolWikipedia`, `toolSerpApi` | Stock utilities |
 | `toolVectorStore` | Retrieval over an indexed corpus |
+| a vector store in mode `retrieve-as-tool` | The canonical RAG wiring — plug it into `subnodes.tools` |
+| `@n8n/mcp-registry.*` | When the service has an MCP-registry node, prefer it over the plain action node for agent tools |
 
 The **tool description is the prompt** the model reads to decide when to call it. Write it for the
 model, not for a human: what it does, what it needs, when *not* to use it.
@@ -62,8 +101,11 @@ letters, digits, underscore and hyphen; type is one of `string|number|boolean|js
 
 ## Memory
 
-`memoryBufferWindow` (in-process, resets on restart), `memoryPostgresChat`, `memoryRedisChat`,
-`memoryMongoChatMemory` for durable history.
+`memoryBufferWindow` ("Simple Memory", in-process, resets on restart), `memoryPostgresChat`
+`memoryRedisChat` and `memoryMongoChat` for durable history.
+
+**Memory attaches to the AI Agent only.** No n8n chain node supports memory — if the workflow
+must remember earlier turns, the root node has to be an agent.
 
 The **session key** decides who shares a conversation. Derive it from the platform's chat id, never
 leave it static across users:
@@ -89,15 +131,21 @@ malformed answer should not stop the run.
 ## Chat Trigger
 
 - Every message is one execution.
-- The reply is taken from a field named **`output`** or **`text`**. Any other name and the caller
-  receives the whole object.
-- Response modes: when the last node finishes, via Respond nodes, or streaming.
+- `options.responseMode` decides how the reply is delivered:
+  - `streaming` — the agent streams straight to the widget. Simplest, and the recommended default.
+  - `lastNode` — the **last executed node must output `{ output: '<reply>' }`**. Ending the chain
+    with a Data Table insert, an HTTP Request or any other side-effect node fails: put logging and
+    persistence on a parallel branch, or append a Set node that reshapes the output.
+  - `responseNodes` — emit replies mid-flow with `@n8n/n8n-nodes-langchain.chat` nodes.
+- `mode` picks the surface: `hostedChat` (page served by n8n) or `webhook` (embedded widget).
 - A Chat Trigger must connect to an agent or chain root node.
+- For human approval inside an agent, `@n8n/n8n-nodes-langchain.chatHitlTool` asks the user before a
+  tool runs (needs `responseMode: 'responseNodes'`).
 
 ## Multi-agent
 
-`toolAiAgent` attaches one agent to another as a tool. **The orchestrator does not pass full
-execution context by default** — the sub-agent sees only what the tool call carries, so put
+`@n8n/n8n-nodes-langchain.agentTool` attaches one agent to another as a tool. **The orchestrator
+does not pass full execution context by default** — the sub-agent sees only what the tool call carries, so put
 everything it needs into the tool parameters.
 
 ## Cost and failure
