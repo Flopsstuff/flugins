@@ -1151,8 +1151,9 @@ async function cmdDataTables(ctx) {
       if (!id) throw usage('data-tables delete-rows needs a table id');
       confirmed(flags, `delete rows from data table ${id}`);
       const body = await readBody(flags);
-      if (await dryRun(flags, 'DELETE', `${rowsBase(id)}/delete`, { body })) return null;
-      const res = await apiRequest(cfg, 'DELETE', `${rowsBase(id)}/delete`, { body, query: flags.filter ? { filter: flags.filter } : undefined });
+      const query = flags.filter ? { filter: flags.filter } : undefined;
+      if (await dryRun(flags, 'DELETE', `${rowsBase(id)}/delete`, { query, body })) return null;
+      const res = await apiRequest(cfg, 'DELETE', `${rowsBase(id)}/delete`, { body, query });
       return { ok: true, command: 'data-tables delete-rows', data: res.body };
     }
     case 'clear-rows': {
