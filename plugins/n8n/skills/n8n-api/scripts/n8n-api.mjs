@@ -1240,6 +1240,14 @@ async function cmdTrigger(ctx) {
   const headers = pairsToObject(flagList(flags, 'header'), 'header');
   if (await dryRun(flags, method, url, { body })) return null;
 
+  // Remember where the execution list stood before firing, so --follow can only ever report an
+  // execution this call produced — not one from a minute ago or from a concurrent run.
+  let baselineId = 0;
+  if (flags.follow) {
+    const { items } = await apiList(cfg, '/executions', { workflowId: wf.id, limit: 1 });
+    baselineId = items[0] ? Number(items[0].id) || 0 : 0;
+  }
+
   log(`[trigger] ${method} ${url}`);
   // Deliberately unauthenticated: a webhook is a public entrypoint, the API key must not leak to it.
   let res;
@@ -1270,7 +1278,7 @@ async function cmdTrigger(ctx) {
       await sleep(1500);
       const { items } = await apiList(cfg, '/executions', { workflowId: wf.id, limit: 1 });
       const latest = items[0];
-      if (latest && new Date(latest.startedAt).getTime() >= Date.now() - 120000) {
+      if (latest && Number(latest.id) > baselineId) {
         execution = compactExecution(latest);
         if (latest.finished || ['success', 'error', 'crashed', 'canceled'].includes(latest.status)) break;
       }
