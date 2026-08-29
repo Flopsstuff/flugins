@@ -226,7 +226,12 @@ meta · tags · shared · activeVersion · homeProject · scopes
 ```
 
 Optional and accepted: `description`, `staticData`, `pinData`, `nodeGroups`, `parentFolderId`,
-and on create only `projectId`. `null` values for these are rejected — omit the key instead.
+and on create only `projectId`. `null` for these is rejected — omit the key instead.
+
+**`parentFolderId` is the exception.** It is `writeOnly` (a GET never returns it) and `nullable`,
+where the two states mean different things: **omit it** to leave the workflow in its current
+folder, or send **`null`** to move it to the project root. The script keeps an explicit `null`
+here while dropping it everywhere else, and `--parent-folder <id|root>` writes it for you.
 
 `workflows update` / `workflows create` in the bundled script strip and validate all of this for
 you, so a workflow fetched with `workflows get` can be piped straight back.

@@ -60,7 +60,7 @@ node "${CLAUDE_SKILL_DIR}/scripts/n8n-api.mjs" ping --pretty
 | Read one (by id **or name**) | `workflows get <id-or-name> [--out <dir>]` · `workflows nodes <id>` |
 | Create / update | `workflows create --file wf.json` · `workflows update <id> --file wf.json [--set name=New]` |
 | Lifecycle | `workflows activate\|deactivate\|archive\|unarchive\|publish\|unpublish <id>` |
-| Rename, tag, move | `workflows rename <id> "New name"` · `workflows tags <id> --set id1,id2` · `workflows transfer <id> --project <p>` |
+| Rename, tag, move | `workflows rename <id> "New name"` · `workflows tags <id> --set id1,id2` · `workflows transfer <id> --project <p>` · `workflows update <id> --parent-folder <id\|root>` |
 | Versions | `workflows history <id>` · `workflows version <id> <versionId>` |
 | Back up everything | `workflows export --all --out ./backup` |
 | Executions | `executions list [--workflow <id-or-name>] [--status error] [--all]` · `executions get <id> --include-data` |
@@ -86,7 +86,10 @@ Full flag list: `node "${CLAUDE_SKILL_DIR}/scripts/n8n-api.mjs" help`.
    `workflows archive` over `delete` when they just want it out of the way.
 4. **Don't hand-clean workflow JSON.** `workflows update` strips the read-only fields (`id`,
    `active`, `tags`, `versionId`, …) that otherwise produce HTTP 400, and enforces the four
-   required keys.
+   required keys. It also drops `null` optionals, which the API rejects — except
+   `parentFolderId`, where `null` is a real instruction ("move to the project root") and is kept.
+   Omitting that key leaves the workflow's folder untouched, so a plain get → update round-trip
+   never moves anything; use `--parent-folder <id|root>` when you do mean to move it.
 5. **Ids beat names.** Names resolve, but the script refuses an ambiguous match — pass the id when
    the user's wording could hit two workflows.
 6. **`--include-data` is heavy.** Use it on a single execution, not on a list; `executions errors`

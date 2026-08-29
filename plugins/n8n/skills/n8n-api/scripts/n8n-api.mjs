@@ -377,7 +377,12 @@ const WORKFLOW_READONLY = [
   'id', 'active', 'createdAt', 'updatedAt', 'isArchived', 'versionId', 'triggerCount',
   'meta', 'tags', 'shared', 'activeVersion', 'homeProject', 'sharedWithProjects',
   'usedCredentials', 'scopes', 'versionCount', 'hash',
+  'activeVersionId', 'sourceWorkflowId', 'versionCounter',
 ];
+// `null` means something for these — everywhere else it is just an absent value.
+// parentFolderId is writeOnly (a GET never returns it), so keeping an explicit null
+// cannot move a workflow by accident on a plain get → update round-trip.
+const WORKFLOW_NULLABLE = new Set(['parentFolderId']);
 const WORKFLOW_UPDATE_ALLOWED = [
   'name', 'nodes', 'connections', 'settings', 'description', 'staticData', 'pinData',
   'nodeGroups', 'parentFolderId',
@@ -394,11 +399,23 @@ function sanitiseWorkflow(input, { mode = 'update' } = {}) {
   }
   const allowed = mode === 'create' ? WORKFLOW_CREATE_ALLOWED : WORKFLOW_UPDATE_ALLOWED;
   const out = {};
-  // `null` optionals (a GET returns description: null) are rejected by the API — drop them.
-  for (const key of allowed) if (input[key] !== undefined && input[key] !== null) out[key] = input[key];
+  for (const key of allowed) {
+    const value = input[key];
+    if (value === undefined) continue;
+    // A GET returns description: null and friends; the API rejects those. Keep a null
+    // only where it carries meaning (see WORKFLOW_NULLABLE).
+    if (value === null && !WORKFLOW_NULLABLE.has(key)) continue;
+    out[key] = value;
+  }
 
   const dropped = Object.keys(input).filter((k) => !allowed.includes(k));
-  if (dropped.length) log(`[sanitise] dropped read-only/unknown fields: ${dropped.join(', ')}`);
+  if (dropped.length) {
+    const readOnly = dropped.filter((k) => WORKFLOW_READONLY.includes(k));
+    const unknown = dropped.filter((k) => !WORKFLOW_READONLY.includes(k));
+    log('[sanitise] dropped'
+      + (readOnly.length ? ` read-only: ${readOnly.join(', ')}` : '')
+      + (unknown.length ? ` unknown: ${unknown.join(', ')}` : ''));
+  }
 
   if (!out.name) throw usage('workflow payload has no "name"');
   if (!Array.isArray(out.nodes)) throw usage('workflow payload has no "nodes" array');
@@ -408,6 +425,16 @@ function sanitiseWorkflow(input, { mode = 'update' } = {}) {
     out.settings = {};
   }
   return { payload: out, dropped };
+}
+
+/** `--parent-folder <id|root>`: `root` (or an explicit `null`) moves it to the project root. */
+function applyParentFolder(payload, flags) {
+  const raw = flags['parent-folder'] ?? flags.parentFolder;
+  if (raw === undefined) return payload;
+  if (raw === true) throw usage('--parent-folder expects a folder id, or "root"');
+  const value = String(raw).trim();
+  payload.parentFolderId = (value === 'root' || value === 'null' || value === '') ? null : value;
+  return payload;
 }
 
 /* ------------------------------------------------------------------ *
@@ -722,6 +749,7 @@ async function cmdWorkflows(ctx) {
       const { payload } = sanitiseWorkflow(raw, { mode: 'create' });
       if (flags.name) payload.name = String(flags.name);
       if (flags.project || flags.projectId) payload.projectId = String(flags.project || flags.projectId);
+      applyParentFolder(payload, flags);
       if (await dryRun(flags, 'POST', '/workflows', { body: payload })) return null;
       const { body } = await apiRequest(cfg, 'POST', '/workflows', { body: payload });
       return { ok: true, command: 'workflows create', data: compactWorkflow(body), hint: 'new workflows start inactive — activate with `workflows activate <id>`' };
@@ -732,6 +760,7 @@ async function cmdWorkflows(ctx) {
       const target = id || raw.id;
       if (!target) throw usage('workflows update needs an id (argument or "id" in the payload)');
       const { payload, dropped } = sanitiseWorkflow(raw, { mode: 'update' });
+      applyParentFolder(payload, flags);
       for (const entry of flagList(flags, 'set')) {
         const eq = String(entry).indexOf('=');
         if (eq === -1) throw usage(`--set expects key=value, got: ${entry}`);
@@ -1526,6 +1555,7 @@ const GLOBAL_FLAGS = {
   '--data / --file / --stdin': 'request body as inline JSON, a file, or piped JSON',
   '--query k=v': 'extra query parameter (repeatable, `call` only)',
   '--header k=v': 'extra header (repeatable, `call` and `trigger`)',
+  '--parent-folder <id>': 'move the workflow into a folder; "root" moves it to the project root',
   '--webhook-base <url>': 'webhook host when it differs from the API host (else $N8N_WEBHOOK_URL)',
   '--webhook-path <seg>': 'production webhook segment (else $N8N_ENDPOINT_WEBHOOK, default "webhook")',
   '--webhook-test-path <seg>': 'test webhook segment (else $N8N_ENDPOINT_WEBHOOK_TEST, default "webhook-test")',
