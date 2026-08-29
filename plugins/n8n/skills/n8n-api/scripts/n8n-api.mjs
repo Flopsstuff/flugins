@@ -220,7 +220,17 @@ function hintFor(status, body, url, authenticated = true) {
 async function apiRequest(cfg, method, endpoint, { query, body, headers, auth = true, raw = false } = {}) {
   const url = buildUrl(cfg, endpoint, query);
   const hdrs = { accept: 'application/json', ...(headers || {}) };
-  if (auth) hdrs['X-N8N-API-KEY'] = requireKey(cfg);
+  if (auth) {
+    // An absolute endpoint keeps its own origin, so without this the key would travel to whatever
+    // host was passed in. Unauthenticated calls (webhooks) are deliberately free to go elsewhere.
+    if (/^https?:\/\//i.test(endpoint) && !url.href.startsWith(cfg.api)) {
+      throw new CliError('usage', `refusing to send the API key to ${url.origin}`, {
+        hint: `absolute URLs are only allowed for the configured instance (${cfg.api}). `
+          + 'Pass a path like /workflows, or point --url at that host if it really is your n8n.',
+      });
+    }
+    hdrs['X-N8N-API-KEY'] = requireKey(cfg);
+  }
   let payload;
   if (body !== undefined && body !== null) {
     if (typeof body === 'string') { payload = body; hdrs['content-type'] ||= 'application/json'; }
