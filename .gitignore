@@ -54,3 +54,7 @@ dev-debug.log
 
 # Local reference material (not part of the repo)
 /refs/
+
+# MCP tooling working dirs (local artifacts)
+.playwright-mcp/
+.markdown_vault_mcp/
