@@ -69,6 +69,16 @@
       "keywords": ["meshy", "3d", "ai", "text-to-3d", "image-to-3d", "generative", "model-generation"]
     },
     {
+      "name": "imagegen",
+      "source": "./plugins/imagegen",
+      "description": "Generate and edit images with Gemini image models (Nano Banana / Nano Banana Pro) through a zero-dependency Python script, with guided API-key onboarding",
+      "author": {
+        "name": "Flop",
+        "email": "flopspm@gmail.com"
+      },
+      "keywords": ["image", "image-generation", "gemini", "nano-banana", "ai", "illustration", "logo", "image-editing"]
+    },
+    {
       "name": "n8n",
       "source": "./plugins/n8n",
       "description": "Build and drive n8n workflows — author them with the official n8n MCP server and its Workflow SDK, and operate the instance through its Public REST API",
