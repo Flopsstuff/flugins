@@ -1,6 +1,6 @@
 {
   "name": "imagegen",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Generate and edit images with Gemini image models (Nano Banana / Nano Banana Pro) through a zero-dependency Python script, with guided API-key onboarding",
   "homepage": "https://github.com/Flopsstuff/flugins",
   "author": {

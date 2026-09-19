@@ -193,12 +193,12 @@ def post(url, body, key):
         except urllib.error.HTTPError as e:
             detail = e.read().decode(errors="replace")
             last = (e.code, detail)
-            if e.code in (429, 500, 502, 503, 504) and attempt < 2:
-                time.sleep(2 * (attempt + 1))
-                continue
             message, explained, auth = explain_http(e.code, scrub(detail, key))
             if auth:
                 raise AuthFail(explained, auth)
+            if e.code in (429, 500, 502, 503, 504) and attempt < 2:
+                time.sleep(2 * (attempt + 1))
+                continue
             raise ApiError(e.code, message, explained)
         except urllib.error.URLError as e:
             last = (0, str(e))

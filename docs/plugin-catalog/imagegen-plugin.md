@@ -6,7 +6,7 @@
 
 **Author:** Flop (flopspm@gmail.com)
 
-**Version:** 0.1.0
+**Version:** 0.1.1
 
 **Keywords:** image, image-generation, gemini, nano-banana, ai, illustration, logo, image-editing
 
