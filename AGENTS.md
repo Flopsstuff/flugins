@@ -302,7 +302,7 @@ This repository uses gitmoji (via `.gitpmoji/`). Common prefixes:
   - Bundles two MCP servers (`plugins/n8n/.mcp.json`): the official n8n docs server, and the instance's own MCP server (`N8N_MCP_URL`/`N8N_MCP_TOKEN`) carrying the Workflow SDK used by `n8n-build`
 - `imagegen` — Generate and edit images with Gemini image models (Nano Banana / Nano Banana Pro)
   - Skills: `imagegen` (model-invoked, written in Russian)
-  - Features: Stdlib-only Python client (`gen.py`, Pillow optional) with per-image cost estimates, a spend ledger, reference-image editing and `--continue` refinement; a dedicated exit code `78` for any API-key failure drives the skill's key onboarding flow, and `save-key.sh` stores the key from stdin in `~/.secrets/gemini-api.key` (mode 600)
+  - Features: Stdlib-only Node client (`gen.mjs`, Node 18+, `--thumb` borrows any installed `magick`/`convert`/`ffmpeg`) with per-image cost estimates, a spend ledger, reference-image editing and `--continue` refinement; a dedicated exit code `78` for any API-key failure drives the skill's key onboarding flow, and `save-key.sh` stores the key from stdin in `~/.secrets/gemini-api.key` (mode 600)
 
 **Not a plugin:** `statusline/` ships a standalone bash statusline script, wired through the `statusLine` entry in `settings.json` rather than through the marketplace. Documented at `docs/plugin-catalog/statusline.md`.
 

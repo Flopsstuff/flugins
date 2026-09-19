@@ -1,15 +1,15 @@
 ---
 name: imagegen
-description: Генерация и редактирование изображений через Gemini image models (Nano Banana / Nano Banana Pro) скриптом gen.py по API-ключу пользователя. Use when asked to create, draw, generate or edit an image, illustration, icon, logo, banner, hero image, texture, mockup art, avatar, poster or placeholder art. Триггеры - "сгенерируй картинку", "нарисуй", "сделай изображение", "нужна иллюстрация", "нужна иконка / логотип / баннер", "отредактируй эту картинку", "перерисуй", "generate an image", "make a logo", "edit this image", "nano banana".
+description: Генерация и редактирование изображений через Gemini image models (Nano Banana / Nano Banana Pro) скриптом gen.mjs по API-ключу пользователя. Use when asked to create, draw, generate or edit an image, illustration, icon, logo, banner, hero image, texture, mockup art, avatar, poster or placeholder art. Триггеры - "сгенерируй картинку", "нарисуй", "сделай изображение", "нужна иллюстрация", "нужна иконка / логотип / баннер", "отредактируй эту картинку", "перерисуй", "generate an image", "make a logo", "edit this image", "nano banana".
 ---
 
 # Генерация картинок через Gemini (Nano Banana)
 
-Скрипт: `${CLAUDE_SKILL_DIR}/scripts/gen.py`. Ключ берётся из `~/.secrets/gemini-api.key`
+Скрипт: `${CLAUDE_SKILL_DIR}/scripts/gen.mjs`. Ключ берётся из `~/.secrets/gemini-api.key`
 (или `$GEMINI_IMAGE_API_KEY` / `$GEMINI_API_KEY`), в вывод никогда не попадает.
 
 ```
-python3 "${CLAUDE_SKILL_DIR}/scripts/gen.py" "промпт" [-m lite|flash|pro] [-a 16:9] [-s 1K] [-o путь] [-r референс.png] [-n N]
+node "${CLAUDE_SKILL_DIR}/scripts/gen.mjs" "промпт" [-m lite|flash|pro] [-a 16:9] [-s 1K] [-o путь] [-r референс.png] [-n N]
 ```
 
 ## Каждая картинка стоит денег
@@ -44,6 +44,8 @@ python3 "${CLAUDE_SKILL_DIR}/scripts/gen.py" "промпт" [-m lite|flash|pro] 
 - `-o` - путь. По умолчанию `./assets/ai-gen/<слаг-промпта>-<таймстемп>.jpg`
   относительно текущего каталога.
 - `--thumb` - положить рядом копию 512px (удобно, когда оригинал 4K и его тяжело смотреть).
+  Ресайз делается через `magick`/`convert`/`ffmpeg`; если ни одного нет, скрипт скажет
+  об этом в stderr и просто не положит превью - на саму генерацию это не влияет.
 - `--json` - машинный вывод, если результат надо разобрать скриптом.
 
 ## Как писать промпт
@@ -68,7 +70,7 @@ Nano Banana реагирует на **описание сцены прозой**
 Правка существующей картинки - через `-r`, промпт описывает **изменение**:
 
 ```
-python3 "${CLAUDE_SKILL_DIR}/scripts/gen.py" "сделай фон ночным, сохрани позу и цвет куртки" -r ./assets/ai-gen/hero.png
+node "${CLAUDE_SKILL_DIR}/scripts/gen.mjs" "сделай фон ночным, сохрани позу и цвет куртки" -r ./assets/ai-gen/hero.png
 ```
 
 Референсов можно до 14 (стиль, персонаж, палитра). Рядом с каждым результатом
@@ -76,7 +78,7 @@ python3 "${CLAUDE_SKILL_DIR}/scripts/gen.py" "сделай фон ночным, 
 Чтобы продолжать доводить ту же сцену с сохранением контекста:
 
 ```
-python3 "${CLAUDE_SKILL_DIR}/scripts/gen.py" "убери лишнюю руку" --continue <interaction_id из сайдкара>
+node "${CLAUDE_SKILL_DIR}/scripts/gen.mjs" "убери лишнюю руку" --continue <interaction_id из сайдкара>
 ```
 
 ## Вывод и показ результата
@@ -134,7 +136,7 @@ python3 "${CLAUDE_SKILL_DIR}/scripts/gen.py" "убери лишнюю руку" 
 
 - Google ставит на все картинки невидимый **SynthID-watermark**. Если результат идёт
   в продакшн или клиенту - скажи об этом.
-- `python3 "${CLAUDE_SKILL_DIR}/scripts/gen.py" --spend` (и `--spend --month`) показывает,
+- `node "${CLAUDE_SKILL_DIR}/scripts/gen.mjs" --spend` (и `--spend --month`) показывает,
   сколько уже потрачено: ledger лежит в `~/.local/state/ai-gen/ledger.jsonl`.
 - HTTP 429 с нулевой квотой почти всегда значит, что на Cloud-проекте за ключом
   **не включён биллинг**, а не что кончился лимит.

@@ -2,15 +2,15 @@
 
 **Name:** `imagegen`
 
-**Description:** Generate and edit images with Gemini image models (Nano Banana / Nano Banana Pro) through a zero-dependency Python script, with guided API-key onboarding
+**Description:** Generate and edit images with Gemini image models (Nano Banana / Nano Banana Pro) through a zero-dependency Node script, with guided API-key onboarding
 
 **Author:** Flop (flopspm@gmail.com)
 
-**Version:** 0.1.1
+**Version:** 0.2.0
 
 **Keywords:** image, image-generation, gemini, nano-banana, ai, illustration, logo, image-editing
 
-The Imagegen plugin lets Claude Code draw and edit images with Google's Gemini image models — `gemini-3.1-flash-lite-image`, `gemini-3.1-flash-image` and `gemini-3-pro-image` (Nano Banana Pro) — through a single **stdlib-only Python script** (`gen.py`). There is no `pip install`, no SDK and no MCP server: the skill's one-line description is all that sits in context until you actually ask for a picture.
+The Imagegen plugin lets Claude Code draw and edit images with Google's Gemini image models — `gemini-3.1-flash-lite-image`, `gemini-3.1-flash-image` and `gemini-3-pro-image` (Nano Banana Pro) — through a single **stdlib-only Node script** (`gen.mjs`). There is no `npm install`, no SDK and no MCP server: the skill's one-line description is all that sits in context until you actually ask for a picture.
 
 Because image models are billed per picture and have **no free tier**, the skill is built around cost awareness: it knows the price of every model/size combination, warns before an expensive batch, refuses more than four variants without `--yes`, and keeps a local spend ledger. Generation runs on **your own** Google API key, which never appears in the script's output.
 
@@ -28,7 +28,7 @@ claude plugin install imagegen@flugins
 
 ## Requirements
 
-- **Python 3** on `PATH` (`python3 --version`) — standard library only. [Pillow](https://pypi.org/project/Pillow/) is used opportunistically for `--thumb` and image info; everything works without it.
+- **Node.js 18 or newer** on `PATH` (`node --version`) — standard library only, no `npm install`. `--thumb` shells out to `magick`, `convert` or `ffmpeg` if one of them is installed and skips the preview with a note if none is; everything else works without any external tool.
 - A **Google API key** with access to the Gemini API. Create one at [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
 - **Billing enabled** on the Cloud project behind that key. Gemini image models have no free tier — an unbilled key is granted quota 0 and every request comes back as HTTP 429.
 
@@ -96,7 +96,7 @@ Pass reference images with `-r` (repeatable, up to 14) and write the prompt as a
 
 ### API-Key Onboarding
 
-`gen.py` exits with code **78** (`EX_CONFIG`) — and only with that code — when the key is missing, rejected (HTTP 401/403), or attached to an unbilled project (HTTP 429 with zero quota). The stderr line is prefixed `error: IMAGEGEN_AUTH:`, and under `--json` the script prints `{"error": "auth", "reason": "no_key" | "bad_key" | "billing"}`.
+`gen.mjs` exits with code **78** (`EX_CONFIG`) — and only with that code — when the key is missing, rejected (HTTP 401/403), or attached to an unbilled project (HTTP 429 with zero quota). The stderr line is prefixed `error: IMAGEGEN_AUTH:`, and under `--json` the script prints `{"error": "auth", "reason": "no_key" | "bad_key" | "billing"}`.
 
 The skill treats that exit code as the signal to onboard rather than an error to surface:
 

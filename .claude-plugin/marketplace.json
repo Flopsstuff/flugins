@@ -71,7 +71,7 @@
     {
       "name": "imagegen",
       "source": "./plugins/imagegen",
-      "description": "Generate and edit images with Gemini image models (Nano Banana / Nano Banana Pro) through a zero-dependency Python script, with guided API-key onboarding",
+      "description": "Generate and edit images with Gemini image models (Nano Banana / Nano Banana Pro) through a zero-dependency Node script, with guided API-key onboarding",
       "author": {
         "name": "Flop",
         "email": "flopspm@gmail.com"
