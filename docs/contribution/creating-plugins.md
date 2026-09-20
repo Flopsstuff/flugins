@@ -374,7 +374,7 @@ EOF
 
 ### 5. Update Marketplace
 
-Add your plugin to `.claude-plugin/marketplace.json`. Keep `description` and `keywords` **identical** to the ones in your `plugin.json` — the marketplace entry is what users read while browsing, the manifest is what they read once installed, and drift between the two is a documentation bug:
+Add your plugin to `.claude-plugin/marketplace.json`. Keep `description` and `keywords` **identical** to the ones in your `plugin.json` — the marketplace entry is what users read while browsing, the manifest is what they read once installed, and drift between the two is a documentation bug. Bump the marketplace's own `metadata.version` in the same change — installed plugins auto-update off it, so a stale catalog version means nobody receives your plugin:
 
 ```json
 {
