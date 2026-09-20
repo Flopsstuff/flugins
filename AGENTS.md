@@ -103,6 +103,8 @@ When adding a new plugin, update `.claude-plugin/marketplace.json`:
 
 **Keep `marketplace.json` and each `plugin.json` in agreement.** `description` and `keywords` must match verbatim between the two — the marketplace entry is what users see when browsing, the plugin manifest is what they see once installed, and a drift between them is a documentation bug.
 
+**Bump `metadata.version` in `marketplace.json` whenever the catalog changes** — adding a plugin is a minor bump, and it is what drives auto-update for installed plugins. The published docs describe this field as informational, but in practice clients key off it, so leaving it stale means users never get the new catalog. Per-plugin `version` in `plugin.json` still tracks that plugin's own changes; the two move independently.
+
 ## Documentation System
 
 ### VitePress Structure
@@ -175,7 +177,7 @@ Or add as local marketplace:
 1. Create plugin directory structure in `plugins/`
 2. Create `.claude-plugin/plugin.json` with metadata
 3. Add command files in `commands/` and/or skills in `skills/{skill-name}/SKILL.md`
-4. Register plugin in `.claude-plugin/marketplace.json` (description and keywords identical to `plugin.json`)
+4. Register plugin in `.claude-plugin/marketplace.json` (description and keywords identical to `plugin.json`) and bump its `metadata.version`
 5. Add plugin documentation page in `docs/plugin-catalog/`
 6. Update `docs/plugin-catalog/index.md` with plugin entry
 7. Register the page in the sidebar in `docs/.vitepress/config.mts`
@@ -303,6 +305,9 @@ This repository uses gitmoji (via `.gitpmoji/`). Common prefixes:
 - `imagegen` — Generate and edit images with Gemini image models (Nano Banana / Nano Banana Pro)
   - Skills: `imagegen` (model-invoked, written in Russian)
   - Features: Stdlib-only Node client (`gen.mjs`, Node 18+, `--thumb` borrows any installed `magick`/`convert`/`ffmpeg`) with per-image cost estimates, a spend ledger, reference-image editing and `--continue` refinement; a dedicated exit code `78` for any API-key failure drives the skill's key onboarding flow, and `save-key.sh` stores the key from stdin in `~/.secrets/gemini-api.key` (mode 600)
+- `agents-init` — Bootstrap a repo's agent instructions as one tool-agnostic `AGENTS.md` with vendor filenames symlinked to it
+  - Skills: `agents-init` (model-invoked or user-invocable, accepts `--lang`, `--link`)
+  - Features: Delegates codebase analysis to the built-in `init`, rewrites the vendor framing while keeping statements that are genuinely true about the repo, `git mv` rename plus relative symlinks for `CLAUDE.md` and `GEMINI.md`, non-destructive survey that never discards a hand-written file, idempotent on re-runs
 
 **Not a plugin:** `statusline/` ships a standalone bash statusline script, wired through the `statusLine` entry in `settings.json` rather than through the marketplace. Documented at `docs/plugin-catalog/statusline.md`.
 

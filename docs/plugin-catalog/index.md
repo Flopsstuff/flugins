@@ -12,6 +12,7 @@ This catalog provides detailed documentation for all available plugins in the Fl
 - [Codex Review Plugin](codex-review-plugin.md) - Run a codex review against a base branch, triage each finding with you, and land every accepted fix as its own commit
 - [Imagegen Plugin](imagegen-plugin.md) - Generate and edit images with Gemini image models (Nano Banana / Nano Banana Pro), with guided API-key onboarding
 - [n8n Plugin](n8n-plugin.md) - Author n8n workflows (node graph, AI agents, validation, publish) and drive any instance through its Public REST API: executions, credentials, data tables, webhooks and instance audits
+- [Agents Init Plugin](agents-init-plugin.md) - Bootstrap a repo's agent instructions as one tool-agnostic AGENTS.md with CLAUDE.md and GEMINI.md symlinked to it
 
 ## Extras
 

@@ -32,6 +32,7 @@ Restart Claude Code afterwards so the plugin's commands and skills become active
 | [`meshy`](https://flopsstuff.github.io/flugins/plugin-catalog/meshy-plugin) | Generate 3D models, textures, rigs and animations from text or images via the Meshy AI API |
 | [`n8n`](https://flopsstuff.github.io/flugins/plugin-catalog/n8n-plugin) | Author n8n workflows and drive any instance through its Public REST API |
 | [`imagegen`](https://flopsstuff.github.io/flugins/plugin-catalog/imagegen-plugin) | Generate and edit images with Gemini image models (Nano Banana / Nano Banana Pro), with guided API-key onboarding |
+| [`agents-init`](https://flopsstuff.github.io/flugins/plugin-catalog/agents-init-plugin) | Bootstrap a repo's agent instructions as one tool-agnostic `AGENTS.md`, with `CLAUDE.md` and `GEMINI.md` symlinked to it |
 
 See the [Plugin Catalog](https://flopsstuff.github.io/flugins/plugin-catalog/) for full documentation of every plugin.
 
