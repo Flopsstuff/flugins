@@ -77,6 +77,16 @@
         "email": "flopspm@gmail.com"
       },
       "keywords": ["n8n", "automation", "workflow", "rest-api", "mcp", "ai-agent", "webhook", "executions", "self-hosted"]
+    },
+    {
+      "name": "agents-init",
+      "source": "./plugins/agents-init",
+      "description": "Bootstrap a repository's agent instructions as one tool-agnostic AGENTS.md, with CLAUDE.md and GEMINI.md symlinked to it",
+      "author": {
+        "name": "Flop",
+        "email": "flopspm@gmail.com"
+      },
+      "keywords": ["agents", "agents-md", "claude-md", "gemini-md", "init", "documentation", "symlink", "tool-agnostic"]
     }
   ]
 }

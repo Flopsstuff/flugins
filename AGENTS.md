@@ -300,6 +300,9 @@ This repository uses gitmoji (via `.gitpmoji/`). Common prefixes:
   - Skills: `n8n-build` (authoring), `n8n-api` (operations) — split by verb: build vs inspect/run
   - Features: Zero-dependency Node client over `/api/v1`, live OpenAPI introspection (`spec`), raw `call` escape hatch, cursor auto-pagination, read-only field stripping on workflow updates, execution failure triage, and `trigger` to run a workflow through its webhook
   - Bundles two MCP servers (`plugins/n8n/.mcp.json`): the official n8n docs server, and the instance's own MCP server (`N8N_MCP_URL`/`N8N_MCP_TOKEN`) carrying the Workflow SDK used by `n8n-build`
+- `agents-init` — Bootstrap a repo's agent instructions as one tool-agnostic `AGENTS.md` with vendor filenames symlinked to it
+  - Skills: `agents-init` (model-invoked or user-invocable, accepts `--lang`, `--link`)
+  - Features: Delegates codebase analysis to the built-in `init`, rewrites the vendor framing while keeping statements that are genuinely true about the repo, `git mv` rename plus relative symlinks for `CLAUDE.md` and `GEMINI.md`, non-destructive survey that never discards a hand-written file, idempotent on re-runs
 
 **Not a plugin:** `statusline/` ships a standalone bash statusline script, wired through the `statusLine` entry in `settings.json` rather than through the marketplace. Documented at `docs/plugin-catalog/statusline.md`.
 

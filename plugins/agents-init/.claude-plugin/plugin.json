@@ -1,0 +1,11 @@
+{
+  "name": "agents-init",
+  "version": "0.1.0",
+  "description": "Bootstrap a repository's agent instructions as one tool-agnostic AGENTS.md, with CLAUDE.md and GEMINI.md symlinked to it",
+  "homepage": "https://github.com/Flopsstuff/flugins",
+  "author": {
+    "name": "Flop",
+    "email": "flopspm@gmail.com"
+  },
+  "keywords": ["agents", "agents-md", "claude-md", "gemini-md", "init", "documentation", "symlink", "tool-agnostic"]
+}

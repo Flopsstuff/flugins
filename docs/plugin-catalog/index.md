@@ -11,6 +11,7 @@ This catalog provides detailed documentation for all available plugins in the Fl
 - [Meshy Plugin](meshy-plugin.md) - Generate 3D models, textures, rigs and animations from text or images via the Meshy AI API
 - [Codex Review Plugin](codex-review-plugin.md) - Run a codex review against a base branch, triage each finding with you, and land every accepted fix as its own commit
 - [n8n Plugin](n8n-plugin.md) - Author n8n workflows (node graph, AI agents, validation, publish) and drive any instance through its Public REST API: executions, credentials, data tables, webhooks and instance audits
+- [Agents Init Plugin](agents-init-plugin.md) - Bootstrap a repo's agent instructions as one tool-agnostic AGENTS.md with CLAUDE.md and GEMINI.md symlinked to it
 
 ## Extras
 
