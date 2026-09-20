@@ -39,6 +39,7 @@ export default defineConfig({
             { text: 'Meshy Plugin', link: '/plugin-catalog/meshy-plugin' },
             { text: 'Codex Review Plugin', link: '/plugin-catalog/codex-review-plugin' },
             { text: 'n8n Plugin', link: '/plugin-catalog/n8n-plugin' },
+            { text: 'Imagegen Plugin', link: '/plugin-catalog/imagegen-plugin' },
             { text: 'Agents Init Plugin', link: '/plugin-catalog/agents-init-plugin' }
           ]
         },

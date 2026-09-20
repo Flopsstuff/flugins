@@ -300,6 +300,9 @@ This repository uses gitmoji (via `.gitpmoji/`). Common prefixes:
   - Skills: `n8n-build` (authoring), `n8n-api` (operations) — split by verb: build vs inspect/run
   - Features: Zero-dependency Node client over `/api/v1`, live OpenAPI introspection (`spec`), raw `call` escape hatch, cursor auto-pagination, read-only field stripping on workflow updates, execution failure triage, and `trigger` to run a workflow through its webhook
   - Bundles two MCP servers (`plugins/n8n/.mcp.json`): the official n8n docs server, and the instance's own MCP server (`N8N_MCP_URL`/`N8N_MCP_TOKEN`) carrying the Workflow SDK used by `n8n-build`
+- `imagegen` — Generate and edit images with Gemini image models (Nano Banana / Nano Banana Pro)
+  - Skills: `imagegen` (model-invoked, written in Russian)
+  - Features: Stdlib-only Node client (`gen.mjs`, Node 18+, `--thumb` borrows any installed `magick`/`convert`/`ffmpeg`) with per-image cost estimates, a spend ledger, reference-image editing and `--continue` refinement; a dedicated exit code `78` for any API-key failure drives the skill's key onboarding flow, and `save-key.sh` stores the key from stdin in `~/.secrets/gemini-api.key` (mode 600)
 - `agents-init` — Bootstrap a repo's agent instructions as one tool-agnostic `AGENTS.md` with vendor filenames symlinked to it
   - Skills: `agents-init` (model-invoked or user-invocable, accepts `--lang`, `--link`)
   - Features: Delegates codebase analysis to the built-in `init`, rewrites the vendor framing while keeping statements that are genuinely true about the repo, `git mv` rename plus relative symlinks for `CLAUDE.md` and `GEMINI.md`, non-destructive survey that never discards a hand-written file, idempotent on re-runs
