@@ -50,15 +50,16 @@ again by MAC / device_id if DHCP moved it, and update the config themselves.
 | 0 | ok | report the result |
 | 2 | usage / bad value | read the message (it lists allowed values), fix the command |
 | 3 | device unreachable | it is off, off Wi-Fi, or on another subnet — tell the user |
-| 4 | protocol failure (sync, decrypt, status never answered) | see "Status stops answering" below |
-| 5 | `set` was sent but the device reports a different value | say which field did not stick |
+| 4 | protocol failure (sync, decrypt, control rejected), or no status yet and nothing cached | see "No fresh status" below |
+| 5 | `set` was sent but the device reports a different value, or never confirmed it | say which field did not stick, and the note printed with it |
 | 78 | no device set up, or the name matches nothing | run **Onboarding** (or show `setup.mts devices`) |
 
 ## Onboarding (first use, or "add / find the purifier")
 
 The device must already be on Wi-Fi via the Philips **Air+** app — setting up Wi-Fi from
 scratch is out of scope. There is no real pairing: the protocol secret is built in.
-"Pairing" means: find the device, run a key sync, decrypt one status, save it.
+"Pairing" means: find the device, run a key sync, prove the encrypted session with a
+no-op command, register for status, save it.
 
 1. `setup.mts discover` — sends `GET /sys/dev/info` to every address of the local /24
    (or the real subnet up to /22) and lists whoever answers: name, model, IP, MAC,
@@ -67,11 +68,12 @@ scratch is out of scope. There is no real pairing: the protocol secret is built 
    CoAP multicast group (experimental, may find nothing).
 2. Show the list to the user. With one candidate, confirm it in a sentence; with several,
    ask which to add (AskUserQuestion is fine here — the options are the found devices).
-3. `setup.mts pair <ip> [--as <key>] [--alias <word>]...` — syncs, decrypts a status, saves.
+3. `setup.mts pair <ip> [--as <key>] [--alias <word>]...` — syncs, checks encryption,
+   registers for status, saves. It may print "no status yet" — normal, see below.
    The key defaults to a slug of the device's own name ("Living room" → `living-room`).
    Offer aliases the user will actually say, in their language (`--alias гостиная
    --alias очиститель`). The first saved device becomes the default.
-4. Report what was saved and the current reading the command printed.
+4. Report what was saved and the current reading, if the command printed one.
 
 Housekeeping: `setup.mts devices`, `alias <dev> <word>...`, `unalias`, `rename <dev> <key>`,
 `default <dev>`, `forget <dev>`.
@@ -104,8 +106,10 @@ Rules:
 - **Values come from the profile.** `air.mts list` prints every writable parameter with its
   allowed values; `set` rejects anything else with exit 2 and the allowed list. Never
   guess a raw number for a named parameter.
-- **`set` verifies itself**: it waits (up to 10 s) for the device to report the new value
-  and prints `ok` or `MISMATCH`. Do not run a separate `status` afterwards just to check.
+- **`set` verifies itself**: the device reports every change within a second, and `set`
+  waits for that report and prints `ok`, `MISMATCH` or `NOT CONFIRMED`. A value the device
+  already had produces no report and is printed as `ok (already set …)`. Do not run a
+  separate `status` afterwards just to check.
 - **Fan speed is not writable.** It follows `mode` (sleep→1, medium→2, high→3). When the
   user asks for "speed 2", set `mode=medium` and say so.
 - `ambient` scenes only show while `lamp=ambient` — set both in one command.
@@ -113,8 +117,8 @@ Rules:
   allowed one and say that you did.
 - Read one thing, answer one thing: for "какая влажность" use `get`, not a full status
   dump. Translate readings into plain language (filter "62% left", not raw hours only).
-- Reads are cheap: they come from the observer's cache (below), not from the device.
-  For "what changes over time" still use `watch`, not repeated `get`.
+- Reads may take up to 10 s and may come back from the cache (below). For "what changes
+  over time" use `watch`, not repeated `get`.
 
 ## Unknown models — raw mode
 
@@ -125,41 +129,37 @@ anything in raw mode, tell the user the value is unchecked and get a yes. To add
 support, write a profile next to `scripts/lib/models/hu5710.mts` and list it in
 `scripts/lib/models/index.mts`; `docs/protocol.md` has the field-mapping workflow.
 
-## The background observer
+## How reads work (nothing runs in the background)
 
-The device serves its state only to CoAP observers, and after a handful of short-lived
-subscriptions it stops answering status for 15–20 minutes (sync and control keep working).
-So the first read of a device starts a small background process, `observer.mts`, that holds
-**one** subscription and caches every report in `~/.local/state/philips-air/<key>/`.
-`status`, `get` and `watch` read that cache; `set` writes directly and confirms from the
-next report. Pairing starts the observer too, so the whole workflow costs the device a
-single subscription.
+Every command does its work and exits. The device keeps a single status subscription; it
+outlives the command that made it, so each run re-registers from the same local UDP port
+and listens (`~/.local/state/philips-air/<key>/` holds that port and the last report).
 
-- The device reports on change, so a `status` may say "last report 4 min ago" — that is
-  the current state, not stale data.
-- The observer exits after 60 minutes without reads (`PHILIPS_AIR_OBSERVER_IDLE`, minutes,
-  0 = never) and the next read starts it again.
-- `air.mts observer` shows whether it runs and when the device last reported;
-  `observer stop` / `observer restart` control it; its log path is printed there.
-- Do not start or restart the observer in a loop: every start is a new subscription.
+- The device **reports every change within a second** while someone listens — that is
+  how `set` confirms and how `watch` follows changes.
+- It **answers a fresh read only now and then**: after one answer it tends to stay silent
+  for 15–20 minutes. So `status`/`get` listen for up to 10 s (`--wait <s>`) and, when
+  nothing comes, print the last report with its age ("this is its last report, 25 min
+  old"). Pass that on honestly: settings changed by the scripts are current; sensors and
+  anything changed on the device itself may have moved since.
+- A report under 30 s old (e.g. right after a `set`) is used as is, without asking the
+  device.
+- Another client that subscribes (the Air+ app, Home Assistant) takes the subscription
+  over; the next command takes it back. While it holds it, `set` may print `NOT CONFIRMED`.
 
-## Status stops answering
+## No fresh status
 
-Symptom: `air.mts info` answers but `status`/`get`/`set` fail with exit 4 ("no status from
-… within 20 s"). The device's status side is jammed — usually by too many subscriptions
-from other local scripts or a restarted observer. Tell the user plainly, then:
-
-1. Wait 15–20 minutes and try **once**. It often recovers on its own.
-2. If it still fails, ask the user to unplug the device for ~10 s. After power-up, status
-   needs about a minute before it answers.
-
-Never retry in a loop — each attempt is another subscription and prolongs the jam.
+Exit 4 with "sent no status … and nothing is cached yet" means the device has not reported
+since pairing (or since the cache was cleared). It is not broken — control still works.
+Tell the user the reading is not available right now, and either try again in 15–20
+minutes **once**, or, if the user is about to change something anyway, do the `set`: its
+confirmation brings the full state with it. Do not retry in a loop — it does not help.
 
 ## Diagnostics
 
-- `air.mts info` — plain-text `/sys/dev/info` (no encryption, no observation).
+- `air.mts info` — plain-text `/sys/dev/info` (no encryption, no subscription).
 - `-v` prints protocol chatter; `PHILIPS_AIR_DEBUG=1` traces every CoAP datagram.
-- `air.mts --host <ip> status` reads an unsaved device directly — diagnostics only, it
-  costs the device a subscription.
+- `air.mts --host <ip> status` reads an unsaved device directly — diagnostics only; it
+  takes the subscription from the saved port until the next normal command.
 - `node --disable-warning=ExperimentalWarning "${CLAUDE_SKILL_DIR}/scripts/selftest.mts"` —
   offline check of the encryption against vectors from the reference Python client.

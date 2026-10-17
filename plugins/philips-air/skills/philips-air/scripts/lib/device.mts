@@ -15,7 +15,7 @@ export class UnreachableError extends Error {
 }
 
 async function probe(ip: string, opts: ClientOptions, tries = 2): Promise<DeviceInfo | null> {
-  // Info needs no observer, so a throwaway port is fine.
+  // Info needs no status registration, so a throwaway port is fine.
   const c = new AirClient(ip, { ...opts, localPort: 0 });
   try {
     for (let i = 0; i < tries; i++) {

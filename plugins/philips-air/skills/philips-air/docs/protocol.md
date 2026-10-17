@@ -4,7 +4,8 @@ Reference for reading the scripts and for adding a model profile. Load only when
 
 ## Transport
 
-- CoAP over UDP, port **5683**. Every message is **NON** (no ACK/retransmit layer).
+- CoAP over UDP, port **5683**. Every message is **NON** (no ACK/retransmit layer), except
+  the status registration, which goes as CON (see below).
 - Requests use Uri-Path (11) and, for status, Observe (6). Answers are matched by token.
 - Implemented from scratch in `scripts/lib/coap.mts` (`node:dgram`) — no `coap` package.
 
@@ -13,9 +14,9 @@ Reference for reading the scripts and for adding a model profile. Load only when
 | `/sys/dev/info` | GET | — | plain JSON: `product_id`, `device_id`, `name`, `type`, `modelid`, `swversion`, `option` |
 | `/sys/dev/sync` | POST | 8 uppercase hex chars (random nonce) | 8 hex chars: the client key counter |
 | `/sys/dev/status` | GET + Observe=0 | — | encrypted `{"state":{"reported":{…}}}`, then notifications |
-| `/sys/dev/control` | POST | encrypted `{"state":{"desired":{"CommandType":"app","DeviceId":"","EnduserId":"", <fields>}}}` | plain `{"status":"success"}` |
+| `/sys/dev/control` | POST | encrypted `{"state":{"desired":{"CommandType":"app","DeviceId":"","EnduserId":"", <fields>}}}` | plain `{"status":"success"}`, or `failed` when the envelope does not decrypt |
 
-`/sys/dev/info` needs no session and no observer, which is why discovery and the
+`/sys/dev/info` needs no session and no subscription, which is why discovery and the
 "is it still the same device at this IP" check use it.
 
 ## Envelope (`scripts/lib/crypto.mts`)
@@ -33,26 +34,35 @@ AES-128-CBC, key = ASCII bytes of h[0:16], iv = ASCII bytes of h[16:32], PKCS#7
 
 ## Device quirks seen on a live HU5710/00
 
-- **Status is a subscription.** GET `/sys/dev/status` with Observe=0 registers an
-  observer; the answer is the current state, then NON notifications follow (Max-Age 60;
-  several arrived within 20 s on a live device). Send it as **CON**: the device answers a CON with a separate NON
-  response (its own message ID, our token, no empty ACK) after 1.6–8 s. The same request
-  as NON can go unanswered while sync and control keep working.
-- **Short-lived subscriptions jam it.** After a handful of registrations from processes
-  that read once and exit, status stops answering — NON and CON alike — while info, sync
-  and control keep working. It came back on its own after roughly 15–20 quiet minutes once,
-  and always after a power cycle. Opening the Air+ app (which talks to the cloud) does not
-  help. Deregistering with Observe=1 does not help either: the device answers it as one
-  more notification (Observe=9) and keeps streaming.
-- **Hence the observer** (`scripts/observer.mts`): one long-lived process per device holds
-  a single subscription from one socket and token, caches every notification, and
-  re-registers from the same socket and token only after twice Max-Age of silence, backing
-  off to 20 minutes while the device answers nothing. A restarted observer binds its previous
-  local port again so the device sees the same endpoint. It never sends RST or Observe=1. The CLI reads the cache; control goes direct.
-- Decrypt sometimes fails (digest/hex error) — counter desync or a stray answer. A fresh
-  read ~1.2 s later works; from the third failure the client re-syncs.
+Measured on 2026-10-17 against firmware 0.4.7.
+
+- **Status is a subscription, and there is one slot.** GET `/sys/dev/status` with
+  Observe=0 registers an observer. The device keeps exactly one: a registration from a
+  new endpoint (address, port) replaces the previous one — the old port stops receiving —
+  and a registration from the same endpoint and token changes nothing.
+- **Notifications are NON and only on change**, 0.4–1 s after it (often two in a row), and
+  carry the full `state.reported`. Writing a value the device already has, or an empty
+  `control`, notifies nobody. Sensor drift (humidity ±1 %) notifies too. In a stable room
+  there can be minutes between notifications; Max-Age says 60 but means nothing here.
+- **A registration outlives its process.** NON needs no ACK, so the device never learns
+  the listener is gone; whoever binds that port later gets the notifications. Verified
+  by binding the port of a process that had exited minutes before and changing the
+  backlight.
+- **The answer to the registration is unreliable.** Send it as **CON**: the device answers
+  with a separate NON response (its own message ID, our token, no empty ACK) after
+  1.6–8 s — sometimes. After one answer it tends to stay silent for 15–20 minutes (NON and
+  CON alike, any port), while the registration itself still works and notifications flow.
+  This is what earlier looked like "short-lived subscriptions jam the device".
+- **Do not deregister.** Observe=1 is answered as one more notification; RST was blamed for
+  trouble in packet dumps. Neither is needed: the next registration replaces the old one.
+- **Hence `lib/session.mts`**: every CLI run binds the port saved in
+  `~/.local/state/philips-air/<key>/port`, re-registers from it (a no-op for the device, and
+  it takes the slot back from another client), listens, caches every report in
+  `state.json`, and exits. `set` is confirmed by the notification it causes; a read that
+  hears nothing within `--wait` shows the cache and its age. No background process.
+- Decrypt sometimes fails (digest/hex error) — counter desync or a stray message; the
+  next notification carries a fresh envelope, so it is skipped.
 - After a power-up, status stays silent for about a minute.
-- After `set`, wait ~1–1.5 s before reading back.
 
 ## Adding a model profile
 
@@ -68,6 +78,7 @@ AES-128-CBC, key = ASCII bytes of h[0:16], iv = ASCII bytes of h[16:32], PKCS#7
    `filters`, `quiet`, and add it to `PROFILES` in `scripts/lib/models/index.mts`.
 5. Verify every writable param with `air.mts set` on the live device (it waits for the
    device's report and says `MISMATCH` when a value does not stick) and restore the original values.
+   `watch` during a change shows every field that moves with it.
 
 ## HU5710 field map
 

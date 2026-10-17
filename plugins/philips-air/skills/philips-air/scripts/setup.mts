@@ -5,13 +5,15 @@
 //
 // "Pairing" is not a real pairing: the protocol secret is built in and the
 // session key comes from /sys/dev/sync. Pairing = find the device, sync,
-// decrypt one status, save it under a name.
+// prove the encrypted session with a no-op control, register for status and
+// save the device under a name.
 //
 // Requires Node 22.18+ / 23.6+ (runs .mts directly). No dependencies.
 
 import { parseArgs } from 'node:util';
-import { AirClient } from './lib/client.mts';
-import { ObserverError, files, observerPid, readCache, startObserver, stopObserver, touch, waitForCache } from './lib/observer.mts';
+import { AirClient, ProtocolError } from './lib/client.mts';
+import type { State } from './lib/client.mts';
+import { Link, dropState, moveState } from './lib/session.mts';
 import { configPath, findDevice, loadConfig, saveConfig, selectDevices, slug } from './lib/config.mts';
 import type { Config, SavedDevice } from './lib/config.mts';
 import { EXIT, UsageError, main, warn } from './lib/cli.mts';
@@ -25,7 +27,7 @@ const USAGE = `usage: node setup.mts <command> [options]
   discover [--subnet CIDR] [--timeout ms] [--multicast] [--json]
                                    find devices on the LAN (GET /sys/dev/info to every host)
   pair <ip> [--as key] [--alias a]... [--default] [--json]
-                                   sync + decrypt status, then save the device
+                                   sync, check encryption, register for status, save
   devices [--json]                 saved devices
   alias <device> <alias>...        add aliases        unalias <device> <alias>...
   rename <device> <new-key>        change the config key
@@ -105,17 +107,11 @@ async function pair(): Promise<number> {
   need(1, 'the device IP (from discover)');
   const ip = args[0];
   if (!isIPv4(ip)) throw new UsageError(`"${ip}" is not an IPv4 address`);
-  const client = new AirClient(ip, { log });
+  const probe = new AirClient(ip, { log });
   let info;
-  try {
-    info = await client.info();
-    if (!opt.json) warn(`found ${info.name ?? '?'} — ${info.modelid ?? '?'} at ${ip}; syncing …`);
-    const clientKey = await client.sync();
-    if (!opt.json) warn(`client key ${clientKey}; waiting for the first encrypted status …`);
-  } finally {
-    client.close();
-  }
+  try { info = await probe.info(); } finally { probe.close(); }
   if (!info.device_id) throw new Error('the device did not report a device_id; cannot save it');
+  if (!opt.json) warn(`found ${info.name ?? '?'} — ${info.modelid ?? '?'} at ${ip}; syncing …`);
 
   const cfg = await loadConfig();
   const existing = savedKeyFor(cfg, info.device_id);
@@ -127,21 +123,23 @@ async function pair(): Promise<number> {
     if (other && other.key !== key) throw new UsageError(`"${name}" already points to ${other.key}; choose another`);
   }
 
-  // The status check goes through the observer that will keep serving this
-  // device, so pairing costs the device exactly one subscription.
-  // A device that is already observed keeps its observer: a second
-  // subscription is exactly what jams it. Its cache is the proof.
-  const running = existing && (await readCache(key))?.ip === ip ? await observerPid(key) : null;
-  if (existing && !running) await stopObserver(key);
-  const since = Date.now();
-  await touch(key);
-  if (!running) await startObserver(key, ip);
-  const cache = await waitForCache(key, 25_000, (c) => !!running || Date.parse(c.updated_at) >= since);
-  if (!cache) {
-    await stopObserver(key);
-    throw new ObserverError(`${info.name ?? ip} answers info and sync, but sent no status within 25 s — not saved. If this keeps happening, unplug the device for 10 s and wait a minute (see ${files(key).log})`);
+  // An empty control is the encryption check: the device answers "failed" to
+  // an envelope it cannot decrypt, and changes nothing either way. Then
+  // register for status from the port later runs will reuse; the device may
+  // or may not answer the registration right away.
+  const link = await Link.open({ key, ip }, log);
+  let state: State | null;
+  try {
+    if (!(await link.client.control({}, 1))) throw new ProtocolError(`${info.name ?? ip} syncs but rejects encrypted commands — not saved. Unplug it for 10 s and try again`);
+    if (!opt.json) warn('encrypted session OK; registering for status …');
+    await link.listen();
+    state = await link.next(12_000);
+  } catch (err) {
+    if (!existing) await dropState(key);
+    throw err;
+  } finally {
+    await link.close();
   }
-  const state = cache.state;
   const prev = existing ? cfg.devices[existing] : undefined;
   const mac = (await arpTable()).get(ip) ?? prev?.mac;
   const now = new Date().toISOString();
@@ -165,19 +163,20 @@ async function pair(): Promise<number> {
 
   const profile = profileFor(dev.model);
   if (opt.json) {
-    out({ saved: dev, default: cfg.default === key, profile: profile?.id ?? null, state: profile ? readable(profile, state) : state, config: configPath() });
+    out({ saved: dev, default: cfg.default === key, profile: profile?.id ?? null, state: state && profile ? readable(profile, state) : state, config: configPath() });
     return EXIT.OK;
   }
   out(`${existing ? 'updated' : 'saved'} "${key}" — ${dev.name}, ${dev.model}, ${ip}${mac ? `, ${mac}` : ''}`);
-  out(`encrypted session OK: ${Object.keys(state).length} fields in status`);
-  if (profile) {
+  if (!state) out('no status yet: the device answers a fresh read only every 15–20 minutes, but reports every change — air.mts will show it once it does');
+  else if (profile) {
     const r = readable(profile, state);
     const show = ['power', 'mode', 'humidity-target'].filter((n) => r.params[n]).map((n) => `${n}=${r.params[n].value}`);
     const sens = ['humidity', 'temperature'].filter((n) => r.sensors[n]).map((n) => `${n} ${r.sensors[n]}`);
     out(`now: ${[...show, ...sens].join(', ')}`);
   } else {
-    warn(`warning: no profile for model ${dev.model} — air.mts will work in raw mode (get/set by D-code, no value checks)`);
+    out(`status: ${Object.keys(state).length} fields`);
   }
+  if (!profile) warn(`warning: no profile for model ${dev.model} — air.mts will work in raw mode (get/set by D-code, no value checks)`);
   if (cfg.default === key) out(`default device: ${key}`);
   out(`config: ${configPath()}`);
   return EXIT.OK;
@@ -235,9 +234,9 @@ await main(async () => {
       return edit(async (cfg) => {
         const d = mustFind(cfg, args[0]);
         const key = slug(args[1]);
-        // The observer's files are keyed by name; the next read starts a new one.
-        await stopObserver(d.key);
         if (cfg.devices[key] && key !== d.key) throw new UsageError(`"${key}" is taken`);
+        // The cache and the registration's port are keyed by name.
+        if (key !== d.key) await moveState(d.key, key);
         delete cfg.devices[d.key];
         if (cfg.default === d.key) cfg.default = key;
         const old = d.key;
@@ -252,7 +251,7 @@ await main(async () => {
       need(1, '<device>');
       return edit(async (cfg) => {
         const d = mustFind(cfg, args[0]);
-        await stopObserver(d.key);
+        await dropState(d.key);
         delete cfg.devices[d.key];
         if (cfg.default === d.key) cfg.default = Object.keys(cfg.devices)[0];
         return `forgot ${d.key}${cfg.default ? `; default is now ${cfg.default}` : ''}`;

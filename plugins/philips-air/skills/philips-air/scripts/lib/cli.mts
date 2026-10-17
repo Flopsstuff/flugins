@@ -5,10 +5,11 @@ import { CoapTimeout } from './coap.mts';
 import { ProtocolError } from './client.mts';
 import { SelectError } from './config.mts';
 import { UnreachableError } from './device.mts';
-import { ObserverError } from './observer.mts';
+import { NoReportError } from './session.mts';
 
 // 0 ok · 1 generic · 2 usage · 3 device unreachable · 4 protocol (sync, decrypt,
-// control rejected) · 5 set did not stick · 78 no device set up / unknown name
+// control rejected, no status and nothing cached) · 5 set not confirmed ·
+// 78 no device set up / unknown name
 export const EXIT = { OK: 0, GENERIC: 1, USAGE: 2, UNREACHABLE: 3, PROTOCOL: 4, MISMATCH: 5, NOT_CONFIGURED: 78 } as const;
 
 export class UsageError extends Error {
@@ -23,7 +24,7 @@ export function exitCodeFor(err: unknown): number {
   if (err instanceof UsageError) return EXIT.USAGE;
   if (err instanceof SelectError) return EXIT.NOT_CONFIGURED;
   if (err instanceof UnreachableError || err instanceof CoapTimeout) return EXIT.UNREACHABLE;
-  if (err instanceof ProtocolError || err instanceof ObserverError) return EXIT.PROTOCOL;
+  if (err instanceof ProtocolError || err instanceof NoReportError) return EXIT.PROTOCOL;
   return EXIT.GENERIC;
 }
 
