@@ -308,6 +308,9 @@ This repository uses gitmoji (via `.gitpmoji/`). Common prefixes:
 - `agents-init` — Bootstrap a repo's agent instructions as one tool-agnostic `AGENTS.md` with vendor filenames symlinked to it
   - Skills: `agents-init` (model-invoked or user-invocable, accepts `--lang`, `--link`)
   - Features: Delegates codebase analysis to the built-in `init`, rewrites the vendor framing while keeping statements that are genuinely true about the repo, `git mv` rename plus relative symlinks for `CLAUDE.md` and `GEMINI.md`, non-destructive survey that never discards a hand-written file, idempotent on re-runs
+- `philips-air` — Control Philips air purifiers and humidifiers (HU5710 and similar Air+ devices) on the LAN over encrypted CoAP
+  - Skills: `philips-air` (model-invoked or user-invocable)
+  - Features: TypeScript scripts run directly by Node 22.18+/23.6+ (`.mts`, native type stripping, no build, no dependencies); own CoAP codec over `node:dgram` and the Air+ AES envelope over `node:crypto`, pinned to vectors from the Python reference by `selftest.mts`; `setup.mts` discovers devices by unicast `/sys/dev/info` sweep and saves them by name in `~/.config/philips-air/devices.json`; no background process: the device keeps one status subscription that outlives its process, so every run re-registers from the same saved UDP port, listens and caches what arrives (`lib/session.mts`); `set` is confirmed by the notification it causes, a read that hears nothing within `--wait` shows the cached report with its age, re-finds a device by MAC/device_id after a DHCP move, and falls back to raw D-codes for models without a profile (`scripts/lib/models/`)
 
 **Not a plugin:** `statusline/` ships a standalone bash statusline script, wired through the `statusLine` entry in `settings.json` rather than through the marketplace. Documented at `docs/plugin-catalog/statusline.md`.
 
