@@ -44,7 +44,7 @@ export class Param {
   /** Parse user text into the raw value, or throw with the allowed choices. */
   parse(text: string): number {
     const t = text.trim().toLowerCase().replace(new RegExp(`${this.unit.replace(/[%]/g, '\\%')}$`), '');
-    if (t in this.values) return this.values[t];
+    if (Object.hasOwn(this.values, t)) return this.values[t];
     if (/^-?\d+$/.test(t)) {
       const n = Number(t);
       if (this.range) {
