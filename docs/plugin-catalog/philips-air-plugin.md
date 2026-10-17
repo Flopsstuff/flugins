@@ -50,7 +50,7 @@ The first request triggers onboarding. The skill scans the subnet, shows what it
 
 ### Configuration
 
-Saved devices live in `~/.config/philips-air/devices.json`; override the path with `$PHILIPS_AIR_CONFIG`. The file holds names, aliases, IP, MAC, model and `device_id`, and no secrets. The background observer keeps its cache and log in `~/.local/state/philips-air/<device>/`. Optional variables are listed in [`.env.example`](https://github.com/Flopsstuff/flugins/blob/main/.env.example): `PHILIPS_AIR_OBSERVER_IDLE` (minutes the observer stays up without reads, default 60) and `PHILIPS_AIR_DEBUG=1`, which traces every datagram.
+Saved devices live in `~/.config/philips-air/devices.json`; override the path with `$PHILIPS_AIR_CONFIG`. The file holds names, aliases, IP, MAC, model and `device_id`, and no secrets. The last report from each device and the UDP port of its status subscription live in `~/.local/state/philips-air/<device>/`. `PHILIPS_AIR_DEBUG=1` traces every datagram (see [`.env.example`](https://github.com/Flopsstuff/flugins/blob/main/.env.example)).
 
 ---
 
@@ -64,28 +64,28 @@ Saved devices live in `~/.config/philips-air/devices.json`; override the path wi
 | Script | Commands |
 |--------|----------|
 | `setup.mts` | `discover [--subnet] [--multicast]`, `pair <ip> [--as] [--alias]…`, `devices`, `alias`, `unalias`, `rename`, `default`, `forget` |
-| `air.mts` | `status [--raw]`, `list`, `get <field>…`, `set name=value…`, `watch [seconds]`, `info`, `observer [stop\|restart]`. Options: `-d <name\|alias\|a,b\|all>`, `--host <ip>`, `--json` |
-| `observer.mts` | Background process, one per device, started on demand. Holds the status subscription |
+| `air.mts` | `status [--raw]`, `list`, `get <field>…`, `set name=value…`, `watch [seconds]`, `info`. Options: `-d <name\|alias\|a,b\|all>`, `--host <ip>`, `--wait <s>`, `--json` |
 | `selftest.mts` | Offline check of the encryption against Python reference vectors and of the CoAP codec |
 
 ### Key Behaviors
 
 - **Discovery without nmap.** `discover` sends a unicast `GET /sys/dev/info` to every address of the local /24 (or the real subnet, up to /22) in parallel and lists every device that answers with device JSON, together with its MAC from the ARP table. This also finds similar devices whose MAC has a different vendor prefix. On a home /24 it takes about 3 seconds.
-- **One subscription, cached.** The device serves its state only to CoAP observers. After a handful of short-lived subscriptions it stops answering status for 15–20 minutes. So the first read of a device starts a small background observer that holds a single subscription and caches every report. `status`, `get` and `watch` read that cache. The observer exits after an hour without reads.
-- **Pairing proves the session.** `pair` syncs a key and waits for the observer's first decrypted status before it saves anything, so a saved device is known to work.
+- **Nothing runs in the background.** The device serves its state only to CoAP observers and keeps exactly one; a subscription outlives the process that made it, and a registration from the same port changes nothing. So every command re-registers from the same saved UDP port, listens, caches what arrives and exits — the session can close right after.
+- **Reads are honest about age.** The device reports every change within a second but answers a fresh read only now and then (after one answer it tends to stay silent for 15–20 minutes). `status` and `get` listen for up to 10 s and otherwise show the last report with its age.
+- **Pairing proves the session.** `pair` syncs a key and sends an empty encrypted command — the device rejects one it cannot decrypt — before it saves anything, so a saved device is known to work.
 - **Names, not IPs.** Commands take a device name or alias. If the device no longer answers at its saved IP, or a different device answers there, the script looks it up again by MAC and then by `device_id`, and updates the config.
 - **Model profiles.** Each model maps raw D-codes to named parameters with allowed values (`scripts/lib/models/`). The HU5710 profile covers power, mode, backlight, light ring and ambient scenes, target humidity, timer, beep, child lock and quick-dry, plus the read-only humidity, temperature, filter life and error code. A model without a profile runs in raw mode (`status --raw`, `get`/`set` by D-code) and gets a warning.
-- **Verified writes.** `set` validates values against the profile, sends each change through `/sys/dev/control`, waits for the device's own report of the new value and prints `ok` or `MISMATCH` (exit code 5).
-- **Retries where the device needs them.** If a control command is rejected, the client re-syncs once and then makes up to 5 more attempts. If the observer gets no reports for twice the device's Max-Age, it re-registers from the same socket and token. Every third round it also re-syncs and checks whether the device has moved.
+- **Verified writes.** `set` validates values against the profile, sends each change through `/sys/dev/control`, waits for the notification the change causes and prints `ok`, `MISMATCH` or `NOT CONFIRMED` (exit code 5). It also refreshes the cache with the device's full state.
+- **Retries where the device needs them.** If a control command is rejected, the client re-syncs once and then makes up to 5 more attempts.
 
 ### Exit Codes
 
-`0` ok · `2` usage or invalid value · `3` device unreachable · `4` protocol failure (sync, decrypt, status never answered) · `5` a written value did not stick · `78` no device set up yet, or the name matches nothing, which starts onboarding.
+`0` ok · `2` usage or invalid value · `3` device unreachable · `4` protocol failure (sync, decrypt, rejected command), or no status yet and nothing cached · `5` a written value did not stick or was not confirmed · `78` no device set up yet, or the name matches nothing, which starts onboarding.
 
 ### What the Skill Will NOT Do
 
 - Set up Wi-Fi on a factory-fresh device; use the Air+ app for that
 - Write unchecked raw values on an unknown model without asking first
-- Hammer the device with status subscriptions; reads come from the observer's cache
+- Leave a process running after a command, or retry status reads in a loop
 
 See the [SKILL.md](https://github.com/Flopsstuff/flugins/blob/main/plugins/philips-air/skills/philips-air/SKILL.md) and the bundled [`docs/protocol.md`](https://github.com/Flopsstuff/flugins/blob/main/plugins/philips-air/skills/philips-air/docs/protocol.md) for the protocol, the device quirks and how to add a model profile.
