@@ -17,7 +17,7 @@
 //   access       touched by every CLI read; the daemon exits after
 //                $PHILIPS_AIR_OBSERVER_IDLE minutes (default 60) without one
 
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { mkdir, readFile, rm, utimes, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -60,10 +60,24 @@ function alive(pid: number): boolean {
   try { process.kill(pid, 0); return true; } catch (err) { return (err as NodeJS.ErrnoException).code === 'EPERM'; }
 }
 
+/**
+ * A pid file outlives a crashed daemon, and the OS may hand its pid to an
+ * unrelated process — which stop/restart/forget would then SIGTERM. So the
+ * pid counts only if its command line is our observer for this key.
+ */
+function isObserver(pid: number, key: string): boolean {
+  try {
+    const cmd = execFileSync('ps', ['-o', 'command=', '-p', String(pid)], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    return cmd.includes('observer.mts') && cmd.trim().split(/\s+/).includes(key);
+  } catch {
+    return false;
+  }
+}
+
 export async function observerPid(key: string): Promise<number | null> {
   try {
     const pid = Number((await readFile(files(key).pid, 'utf8')).trim());
-    return pid > 0 && alive(pid) ? pid : null;
+    return pid > 0 && alive(pid) && isObserver(pid, key) ? pid : null;
   } catch {
     return null;
   }
