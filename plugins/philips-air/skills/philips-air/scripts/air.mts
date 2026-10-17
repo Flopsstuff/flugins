@@ -29,7 +29,7 @@ import type { State } from './lib/client.mts';
 import { loadConfig, selectDevices } from './lib/config.mts';
 import type { SavedDevice } from './lib/config.mts';
 import { openSaved } from './lib/device.mts';
-import { EXIT, UsageError, main, warn } from './lib/cli.mts';
+import { EXIT, UsageError, exitCodeFor, main, warn } from './lib/cli.mts';
 import { profileFor } from './lib/models/index.mts';
 import type { Param, Profile, Raw } from './lib/models/index.mts';
 import { isIPv4 } from './lib/net.mts';
@@ -117,7 +117,7 @@ async function each(fn: (t: Target) => Promise<number>): Promise<number> {
     } catch (err) {
       if (ts.length === 1) throw err;
       warn(`${t.key}: ${(err as Error).message}`);
-      worst = Math.max(worst, EXIT.GENERIC);
+      worst = Math.max(worst, exitCodeFor(err));
     }
   }
   return worst;
