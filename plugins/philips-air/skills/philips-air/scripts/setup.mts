@@ -70,7 +70,8 @@ function mustFind(cfg: Config, q: string): SavedDevice {
 }
 
 async function discover(): Promise<number> {
-  const timeoutMs = opt.timeout ? Number(opt.timeout) : 2500;
+  const timeoutMs = opt.timeout === undefined ? 2500 : Number(opt.timeout);
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) throw new UsageError(`--timeout needs milliseconds > 0, got "${opt.timeout}"`);
   const hosts = allLocalHosts(opt.subnet);
   if (!hosts.length) throw new Error('no active IPv4 interface found; pass --subnet 192.168.1.0/24');
   if (!opt.json) {
