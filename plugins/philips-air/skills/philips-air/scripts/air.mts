@@ -251,6 +251,9 @@ interface Result { name: string; code: string; from: string; to: string; sent: b
 
 async function set(): Promise<number> {
   if (!args.length) throw new UsageError('set needs name=value pairs');
+  // An unsaved address has no device_id to check: a reassigned IP would take
+  // the write. --host stays read-only.
+  if (opt.host) throw new UsageError('--host is read-only diagnostics; pair the device (setup.mts pair <ip>) to change it');
   const verify = !opt['no-verify'];
   const docs: unknown[] = [];
   const code = await each(async (t) => {
