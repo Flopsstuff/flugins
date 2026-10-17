@@ -63,7 +63,9 @@ function need(n: number, what: string): void {
   if (args.length < n) throw new UsageError(`${cmd} needs ${what}`);
 }
 
+/** Exactly one device: `all` and a,b lists are for air.mts, not for edits. */
 function mustFind(cfg: Config, q: string): SavedDevice {
+  if (q.trim().toLowerCase() === 'all' || q.includes(',')) throw new UsageError(`${cmd} works on one device; name it instead of "${q}"`);
   return selectDevices(cfg, q)[0];
 }
 
