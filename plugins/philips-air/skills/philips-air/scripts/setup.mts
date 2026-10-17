@@ -237,6 +237,9 @@ await main(async () => {
         const d = mustFind(cfg, args[0]);
         const key = slug(args[1]);
         if (cfg.devices[key] && key !== d.key) throw new UsageError(`"${key}" is taken`);
+        // A key wins over aliases and names in findDevice: it must not capture another device's.
+        const other = findDevice(cfg, key);
+        if (other && other.key !== d.key) throw new UsageError(`"${key}" already points to ${other.key}; choose another`);
         // The cache and the registration's port are keyed by name.
         if (key !== d.key) await moveState(d.key, key);
         delete cfg.devices[d.key];
