@@ -6,7 +6,7 @@
 import { AirClient } from './client.mts';
 import type { CoapSocket } from './coap.mts';
 import type { ClientOptions, DeviceInfo } from './client.mts';
-import { saveConfig } from './config.mts';
+import { loadConfig, saveConfig } from './config.mts';
 import type { Config, SavedDevice } from './config.mts';
 import { allLocalHosts, arpTable, scan } from './net.mts';
 
@@ -58,7 +58,14 @@ export async function openSaved(cfg: Config, dev: SavedDevice, opts: ClientOptio
     dev.ip = ip;
     dev.last_seen = new Date().toISOString();
     cfg.devices[dev.key] = dev;
-    await saveConfig(cfg);
+    // The scan takes seconds and cfg may be older still: write the new address
+    // into the config as it is now, and only if the entry is still this device.
+    const fresh = await loadConfig();
+    const cur = fresh.devices[dev.key];
+    if (cur?.device_id === dev.device_id) {
+      fresh.devices[dev.key] = { ...cur, ip, mac: dev.mac ?? cur.mac, last_seen: dev.last_seen };
+      await saveConfig(fresh);
+    }
   }
   return { client: new AirClient(ip, opts, sock), info: info!, device: dev };
 }
