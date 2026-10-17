@@ -24,7 +24,7 @@ import type { State } from './lib/client.mts';
 import { CoapSocket } from './lib/coap.mts';
 import { loadConfig, saveConfig } from './lib/config.mts';
 import { allLocalHosts, scan } from './lib/net.mts';
-import { files, idleMinutes, observerPid } from './lib/observer.mts';
+import { claimPid, files, idleMinutes } from './lib/observer.mts';
 import type { Cache } from './lib/observer.mts';
 
 const { values: opt, positionals } = parseArgs({ allowPositionals: true, options: { ip: { type: 'string' } } });
@@ -33,13 +33,13 @@ if (!key) { process.stderr.write('usage: observer.mts <key> [--ip <addr>]\n'); p
 
 const f = files(key);
 await mkdir(f.dir, { recursive: true });
+
+// Single instance per device: the pid file is claimed atomically, and a
+// daemon that loses exits before it truncates the winner's log or opens a
+// second subscription.
+if (await claimPid(key)) process.exit(0);
 const logStream = createWriteStream(f.log, { flags: 'w' });
 const log = (line: string) => logStream.write(`${new Date().toISOString()} ${line}\n`);
-
-// Single instance per device: a live pid in the pid file wins.
-const other = await observerPid(key);
-if (other && other !== process.pid) { log(`another observer (pid ${other}) is running; exiting`); process.exit(0); }
-await writeFile(f.pid, String(process.pid));
 
 // Reuse the previous run's port when it is free, so the device sees the same
 // observer endpoint again (RFC 7641: same endpoint + token replaces).

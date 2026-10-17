@@ -69,6 +69,28 @@ export async function observerPid(key: string): Promise<number | null> {
   }
 }
 
+/**
+ * Daemon side: take the pid file with an exclusive create, so of two daemons
+ * spawned at the same moment only one survives. A file left by a dead daemon
+ * is removed and the claim retried. Resolves with the pid that already owns
+ * it, or null when this process now does.
+ */
+export async function claimPid(key: string): Promise<number | null> {
+  const f = files(key);
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await writeFile(f.pid, String(process.pid), { flag: 'wx' });
+      return null;
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'EEXIST') throw err;
+    }
+    const owner = await observerPid(key);
+    if (owner) return owner;
+    await rm(f.pid, { force: true });
+  }
+  throw new ObserverError(`could not claim ${f.pid}`);
+}
+
 export async function readCache(key: string): Promise<Cache | null> {
   try { return JSON.parse(await readFile(files(key).state, 'utf8')) as Cache; } catch { return null; }
 }
