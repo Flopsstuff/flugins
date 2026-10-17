@@ -87,7 +87,7 @@ async function discover(): Promise<number> {
     saved_as: savedKeyFor(cfg, c.info.device_id) ?? null,
     via: c.via,
   }));
-  if (opt.json) { out({ devices: rows }); return EXIT.OK; }
+  if (opt.json) { out({ devices: rows }); return rows.length ? EXIT.OK : EXIT.UNREACHABLE; }
   if (!rows.length) {
     out('no devices answered /sys/dev/info. Check that the device is powered, joined to Wi-Fi via the Air+ app, and on the same subnet (or pass --subnet).');
     return EXIT.UNREACHABLE;
@@ -186,7 +186,7 @@ async function pair(): Promise<number> {
 async function devices(): Promise<number> {
   const cfg = await loadConfig();
   const list = Object.values(cfg.devices);
-  if (opt.json) { out({ default: cfg.default ?? null, devices: list, config: configPath() }); return EXIT.OK; }
+  if (opt.json) { out({ default: cfg.default ?? null, devices: list, config: configPath() }); return list.length ? EXIT.OK : EXIT.NOT_CONFIGURED; }
   if (!list.length) { out(`no saved devices (config: ${configPath()}). Run: setup.mts discover`); return EXIT.NOT_CONFIGURED; }
   for (const d of list) {
     out(`${d.key}${cfg.default === d.key ? '  (default)' : ''}`);
