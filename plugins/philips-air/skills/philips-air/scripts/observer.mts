@@ -6,7 +6,8 @@
 //
 //   node observer.mts <key> [--ip <addr>]
 //
-// One socket, one token, one registration. When the device has been silent
+// One socket, one token, one registration, made only after /sys/dev/info at
+// the address reports the saved device_id. When the device has been silent
 // for twice its Max-Age it re-registers from the same socket with the same
 // token (that replaces the registration instead of adding one); after several
 // silent rounds it re-syncs and checks the address again. It never sends RST
@@ -68,6 +69,8 @@ let lastMessage = 0;
 let registeredAt = 0;
 let maxAge = 60;
 let silentRounds = 0;
+/** the last identity check found another device at client.host */
+let foreign = false;
 
 async function writeCache(state: State): Promise<void> {
   const c: Cache = {
@@ -82,8 +85,19 @@ async function writeCache(state: State): Promise<void> {
   await rename(tmp, f.state);
 }
 
-async function register(): Promise<void> {
+/**
+ * Subscribe (or re-subscribe). With `verify`, or while the address last
+ * belonged to another device, first make sure client.host is still this
+ * device — a valid stream of notifications from the wrong one would never
+ * trigger relocation on its own.
+ */
+async function register(verify = false): Promise<void> {
   registeredAt = Date.now();
+  if (verify || foreign) {
+    foreign = !(await relocate());
+    if (foreign) { log(`${client.host} answers as a different device and ${key} was not found elsewhere; not registering`); return; }
+    await client.sync();
+  }
   await client.observe((state, age) => {
     lastMessage = Date.now();
     maxAge = age;
@@ -93,24 +107,31 @@ async function register(): Promise<void> {
   log(`registered with ${client.host}`);
 }
 
-/** The device may have moved (DHCP): look for it by device_id. */
-async function relocate(): Promise<void> {
+/**
+ * The device may have moved (DHCP): look for it by device_id. False only when
+ * another device answers at client.host and this one is nowhere to be found;
+ * a silent address is kept — the device may just be off.
+ */
+async function relocate(): Promise<boolean> {
   const dev = await deviceRecord();
-  if (!dev) return;
+  if (!dev) return true;
   try {
     const probe = new AirClient(client.host, { log, localPort: 0 });
     const info = await probe.info(1500).catch(() => null);
     probe.close();
-    if (info?.device_id === dev.device_id) return;
+    if (info?.device_id === dev.device_id) return true;
     const hit = (await scan({ hosts: allLocalHosts(), stopOn: (c) => c.info.device_id === dev.device_id }))
       .find((c) => c.info.device_id === dev.device_id);
-    if (!hit || hit.ip === client.host) return;
+    if (!hit) return !info;
+    if (hit.ip === client.host) return true;
     log(`${dev.name} moved ${client.host} → ${hit.ip}`);
     const cfg = await loadConfig();
     if (cfg.devices[key]) { cfg.devices[key].ip = hit.ip; await saveConfig(cfg); }
     client = new AirClient(hit.ip, { log }, sock);
+    return true;
   } catch (err) {
     log(`relocate failed: ${(err as Error).message}`);
+    return true;
   }
 }
 
@@ -128,7 +149,7 @@ const boundPort = await sock.localPort();
 await writeFile(f.port, String(boundPort));
 log(`observer for ${key} (pid ${process.pid}) → ${ip}, local port ${boundPort}${previousPort && previousPort !== boundPort ? ` (previous port ${previousPort} was taken)` : ''}`);
 try {
-  await register();
+  await register(true);
 } catch (err) {
   log(`first registration failed: ${(err as Error).message}`);
 }
@@ -147,11 +168,7 @@ while (!stopping) {
   silentRounds++;
   log(`no notification for ${Math.round(silence / 1000)} s (round ${silentRounds}); re-registering`);
   try {
-    if (silentRounds % 3 === 0) {
-      await relocate();
-      await client.sync();
-    }
-    await register();
+    await register(silentRounds % 3 === 0);
   } catch (err) {
     log(`re-registration failed: ${(err as Error).message}`);
   }
