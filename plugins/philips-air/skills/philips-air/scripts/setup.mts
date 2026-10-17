@@ -121,6 +121,11 @@ async function pair(): Promise<number> {
   const existing = savedKeyFor(cfg, info.device_id);
   const key = existing ?? slug(opt.as ?? info.name ?? info.modelid ?? 'device');
   if (!existing && cfg.devices[key]) throw new UsageError(`a different device is already saved as "${key}"; choose another with --as`);
+  // Same rule as the alias command: a name may resolve to one device only.
+  for (const name of [key, ...(opt.alias ?? [])]) {
+    const other = findDevice(cfg, name);
+    if (other && other.key !== key) throw new UsageError(`"${name}" already points to ${other.key}; choose another`);
+  }
 
   // The status check goes through the observer that will keep serving this
   // device, so pairing costs the device exactly one subscription.
