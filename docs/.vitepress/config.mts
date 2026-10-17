@@ -40,7 +40,8 @@ export default defineConfig({
             { text: 'Codex Review Plugin', link: '/plugin-catalog/codex-review-plugin' },
             { text: 'n8n Plugin', link: '/plugin-catalog/n8n-plugin' },
             { text: 'Imagegen Plugin', link: '/plugin-catalog/imagegen-plugin' },
-            { text: 'Agents Init Plugin', link: '/plugin-catalog/agents-init-plugin' }
+            { text: 'Agents Init Plugin', link: '/plugin-catalog/agents-init-plugin' },
+            { text: 'Philips Air Plugin', link: '/plugin-catalog/philips-air-plugin' }
           ]
         },
         {

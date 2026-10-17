@@ -13,6 +13,7 @@ This catalog provides detailed documentation for all available plugins in the Fl
 - [Imagegen Plugin](imagegen-plugin.md) - Generate and edit images with Gemini image models (Nano Banana / Nano Banana Pro), with guided API-key onboarding
 - [n8n Plugin](n8n-plugin.md) - Author n8n workflows (node graph, AI agents, validation, publish) and drive any instance through its Public REST API: executions, credentials, data tables, webhooks and instance audits
 - [Agents Init Plugin](agents-init-plugin.md) - Bootstrap a repo's agent instructions as one tool-agnostic AGENTS.md with CLAUDE.md and GEMINI.md symlinked to it
+- [Philips Air Plugin](philips-air-plugin.md) - Control Philips air purifiers and humidifiers (HU5710 and similar) on the local network over encrypted CoAP, with LAN discovery and named devices
 
 ## Extras
 
