@@ -300,8 +300,10 @@ export class AirFryer {
   // Success is the NCP status 0 on the reply. Do not wait for a Status echo:
   // the Wi-Fi module can lose sync with the main board and keep serving an old
   // Status snapshot while Control writes still go through.
+  // temp_unit goes out on every write, status-only ones included: leaving it
+  // off switches the appliance to Fahrenheit.
   async setControl(props) {
-    await this.ncp("setPort", "Control", props);
+    await this.ncp("setPort", "Control", { ...props, temp_unit: false });
   }
 
   async ports() {
@@ -324,8 +326,6 @@ export class AirFryer {
     return { ...this.state };
   }
 
-  // temp_unit goes out on every write: leaving it off switches the appliance
-  // to Fahrenheit.
   async configure(temp, minutes, preset = 0) {
     const presetId = typeof preset === "string" ? PRESETS[preset] : preset;
     if (presetId === undefined) {
@@ -339,7 +339,6 @@ export class AirFryer {
       temp: Math.trunc(temp),
       time: Math.round(minutes * 60),
       preset: presetId,
-      temp_unit: false,
     });
     await sleep(STEP_DELAY_MS);
   }
@@ -355,10 +354,10 @@ export class AirFryer {
 
   async adjust({ temp = null, minutes = null } = {}) {
     checkRanges(temp, minutes);
-    const props = { temp_unit: false };
+    const props = {};
     if (temp !== null) props.temp = Math.trunc(temp);
     if (minutes !== null) props.time = Math.round(minutes * 60);
-    if (Object.keys(props).length === 1) {
+    if (Object.keys(props).length === 0) {
       throw new ValueError("adjust needs --temp and/or --minutes");
     }
     await this.setControl(props);
