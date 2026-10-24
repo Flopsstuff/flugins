@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Collection of Claude Code plugins by Flopsstuff",
-    "version": "0.3.0"
+    "version": "0.4.0"
   },
   "plugins": [
     {
@@ -107,6 +107,16 @@
         "email": "flopspm@gmail.com"
       },
       "keywords": ["philips", "air-purifier", "humidifier", "coap", "smart-home", "iot", "local-control", "hu5710"]
+    },
+    {
+      "name": "philips-airfryer",
+      "source": "./plugins/philips-airfryer",
+      "description": "Control a Philips connected airfryer (5000 Series XL HD9280 / HD928x, FUSION firmware) through the Philips HomeID / Versuni cloud — email-code login, cook with presets, pause, resume, stop, adjust, keep warm, live status",
+      "author": {
+        "name": "Flop",
+        "email": "flopspm@gmail.com"
+      },
+      "keywords": ["philips", "airfryer", "air-fryer", "hd9280", "smart-home", "iot", "mqtt", "aws-iot", "versuni"]
     }
   ]
 }

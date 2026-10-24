@@ -41,7 +41,8 @@ export default defineConfig({
             { text: 'n8n Plugin', link: '/plugin-catalog/n8n-plugin' },
             { text: 'Imagegen Plugin', link: '/plugin-catalog/imagegen-plugin' },
             { text: 'Agents Init Plugin', link: '/plugin-catalog/agents-init-plugin' },
-            { text: 'Philips Air Plugin', link: '/plugin-catalog/philips-air-plugin' }
+            { text: 'Philips Air Plugin', link: '/plugin-catalog/philips-air-plugin' },
+            { text: 'Philips Airfryer Plugin', link: '/plugin-catalog/philips-airfryer-plugin' }
           ]
         },
         {
