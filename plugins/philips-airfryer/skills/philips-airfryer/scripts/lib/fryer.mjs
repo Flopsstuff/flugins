@@ -115,6 +115,9 @@ export async function loginFinish(code) {
   delete state.vtoken;
   state.refresh_token = tokens.refresh_token;
   state.devices = devices;
+  // The previous account's appliance must not outlive a login that finds none.
+  delete state.thing_name;
+  delete state.model;
   const fryer = devices.find((d) =>
     String(d.ctn ?? "").toUpperCase().startsWith("HD9"),
   );
