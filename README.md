@@ -34,6 +34,7 @@ Restart Claude Code afterwards so the plugin's commands and skills become active
 | [`imagegen`](https://flopsstuff.github.io/flugins/plugin-catalog/imagegen-plugin) | Generate and edit images with Gemini image models (Nano Banana / Nano Banana Pro), with guided API-key onboarding |
 | [`agents-init`](https://flopsstuff.github.io/flugins/plugin-catalog/agents-init-plugin) | Bootstrap a repo's agent instructions as one tool-agnostic `AGENTS.md`, with `CLAUDE.md` and `GEMINI.md` symlinked to it |
 | [`philips-air`](https://flopsstuff.github.io/flugins/plugin-catalog/philips-air-plugin) | Control Philips air purifiers and humidifiers (HU5710 and similar) on the local network over encrypted CoAP — no cloud, no app |
+| [`philips-airfryer`](https://flopsstuff.github.io/flugins/plugin-catalog/philips-airfryer-plugin) | Control a Philips connected airfryer (HD9280 / HD928x) through the Philips HomeID cloud — cook with presets, pause, adjust, keep warm, status |
 
 See the [Plugin Catalog](https://flopsstuff.github.io/flugins/plugin-catalog/) for full documentation of every plugin.
 

@@ -1,0 +1,11 @@
+{
+  "name": "philips-airfryer",
+  "version": "0.1.0",
+  "description": "Control a Philips connected airfryer (5000 Series XL HD9280 / HD928x, FUSION firmware) through the Philips HomeID / Versuni cloud — email-code login, cook with presets, pause, resume, stop, adjust, keep warm, live status",
+  "homepage": "https://github.com/Flopsstuff/flugins",
+  "author": {
+    "name": "Flop",
+    "email": "flopspm@gmail.com"
+  },
+  "keywords": ["philips", "airfryer", "air-fryer", "hd9280", "smart-home", "iot", "mqtt", "aws-iot", "versuni"]
+}
