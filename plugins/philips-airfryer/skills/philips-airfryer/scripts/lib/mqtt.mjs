@@ -68,8 +68,10 @@ export class MqttClient {
     return !this._closed;
   }
 
+  // send() throws while the socket is still CONNECTING, and the keepalive timer
+  // can fire before a slow upgrade completes.
   _send(buf) {
-    if (!this._closed) this._ws.send(buf);
+    if (!this._closed && this._ws.readyState === WebSocket.OPEN) this._ws.send(buf);
   }
 
   _id() {
