@@ -5,7 +5,7 @@
 
 import { randomBytes, randomUUID } from "node:crypto";
 
-import { connect as mqttConnect } from "./mqtt.mjs";
+import { MqttError, connect as mqttConnect } from "./mqtt.mjs";
 import { loadState, saveState } from "./state.mjs";
 import {
   FUSION_MQTT_HOST,
@@ -204,6 +204,7 @@ export class AirFryer {
       },
     });
     this._client.onMessage = (topic, payload) => this._onMessage(topic, payload);
+    this._client.onClose = () => this._onClose();
     // Only these topics: a wildcard (#) violates the IoT policy and the broker
     // drops the connection.
     await this._client.subscribe([
@@ -237,11 +238,19 @@ export class AirFryer {
         return;
       }
       const waiter = this._pending.get(msg.cid);
-      if (waiter) waiter(msg);
+      if (waiter) waiter.resolve(msg);
     } else if (topic.startsWith(this._shadow)) {
       Object.assign(this._shadowState, msg?.state?.reported ?? {});
       if (this._shadowResolve) this._shadowResolve();
     }
+  }
+
+  // A dropped connection is a cloud failure, not a silent appliance: fail the
+  // waiting requests now instead of letting them run into the reply timeout.
+  _onClose() {
+    const err = new MqttError("connection closed by the broker");
+    for (const waiter of this._pending.values()) waiter.reject(err);
+    this._pending.clear();
   }
 
   // One NCP request/response. Replies are matched by a fresh 4-byte cid;
@@ -269,10 +278,17 @@ export class AirFryer {
           this._pending.delete(cid);
           reject(new AirFryerError(`No reply from the appliance for ${command} ${port}`));
         }, this.timeoutMs);
-        this._pending.set(cid, (msg) => {
-          clearTimeout(timer);
-          this._pending.delete(cid);
-          resolve(msg);
+        this._pending.set(cid, {
+          resolve: (msg) => {
+            clearTimeout(timer);
+            this._pending.delete(cid);
+            resolve(msg);
+          },
+          reject: (err) => {
+            clearTimeout(timer);
+            this._pending.delete(cid);
+            reject(err);
+          },
         });
         this._client.publish(this._toNcp, JSON.stringify(payload), { qos: 1 }).catch((err) => {
           clearTimeout(timer);
